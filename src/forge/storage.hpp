@@ -9,7 +9,6 @@ class sparse_set {
 
    public:
     static constexpr std::size_t EMPTY = std::numeric_limits<std::size_t>::max();
-    sparse_set() {};
 
     template <typename... Args>
     void emplace(KeyType e, Args&&... args) {
@@ -28,12 +27,11 @@ class sparse_set {
         return e < sparse.size() && sparse[e] != EMPTY;
     }
 
-    CTy& get(KeyType e) {
-        FORGE_ASSERT(contains(e), "[SPARSE GET ASSERTION FAILED] Key " << e << " is not contained in the sparse storage");
+    CTy& get(KeyType e) noexcept {
         return dense[sparse[e]];
     };
 
-    const CTy& get(KeyType e) const {
+    const CTy& get(KeyType e) const noexcept {
         return dense[sparse[e]];
     }
 };

@@ -47,11 +47,27 @@ class registry {
      * @tparam Component type of component to retrieve.
      * @param self allows for deducing-this qualifiers to be propagated to user
      * @param e the entity to allow component retrieval from the component's storage
+     * @return reference to component object
      */
     template <typename Component>
-    decltype(auto) get_component(this auto& self, entity e) {
-        auto& storage = std::get<meta::index_of<Component, ComponentRegistry...>::index>(self.storage_map);
-        return storage.get(e);
+    [[nodiscard]] decltype(auto) get_component(this auto& self, entity e) noexcept {
+        constexpr static std::size_t component_index = meta::index_of<Component, ComponentRegistry...>::index;
+        auto& storage = std::get<component_index>(self.storage_map);
+        FORGE_ASSERT(storage.contains(to_id(e)), "[SPARSE GET ASSERTION FAILED] Key " << to_id(e) << " is not contained in the sparse storage of component index " << component_index);
+        return storage.get(to_id(e));
+    }
+    /**
+     * @brief gets components of given type, components must be registered to the ComponentRegistry
+     *
+     * @tparam Components type list to retrieve.
+     * @param self allows for deducing-this qualifiers to be propagated to user
+     * @param e the entity to allow component retrieval from the component's storage
+     * @return forwarded tuple of reference to component objects
+     */
+    template <typename... Components>
+        requires(sizeof...(Components) > 1)
+    [[nodiscard]] decltype(auto) get_component(this auto& self, entity e) noexcept {
+        return std::forward_as_tuple(self.template get_component<Components>(e)...);
     }
 };
 /**
