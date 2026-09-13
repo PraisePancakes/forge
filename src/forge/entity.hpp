@@ -71,19 +71,19 @@ struct base_entity {
 }  // namespace _INTERNAL
 
 template <typename EntityType>
-struct entity : _INTERNAL::base_entity<EntityType> {
+struct entity_fwd : _INTERNAL::base_entity<EntityType> {
     using base_type = _INTERNAL::base_entity<EntityType>;
     typename base_type::value_type value;
 
     operator typename base_type::value_type() const {
         return this->value;
     };
-    entity() : value{base_type::generate_next()} {};
+    entity_fwd() : value{base_type::generate_next()} {};
 
-    explicit constexpr entity(typename base_type::value_type value)
+    explicit constexpr entity_fwd(typename base_type::value_type value)
         : value{value} {}
 
-    friend std::ostream& operator<<(std::ostream& os, const entity<EntityType>& e) {
+    friend std::ostream& operator<<(std::ostream& os, const entity_fwd<EntityType>& e) {
         os << "Entity {" << std::endl;
         os << "BIT REP : " + base_type::to_bit_string(e) << std::endl;
         os << "ID      : " + std::to_string(base_type::to_id(e)) << std::endl;
@@ -93,19 +93,20 @@ struct entity : _INTERNAL::base_entity<EntityType> {
     };
 };
 
+
 template <typename T>
-static constexpr typename entity<T>::base_type::id_type to_id(entity<T> e) {
-    return entity<T>::base_type::to_id(e);
+static constexpr typename entity_fwd<T>::base_type::id_type to_id(entity_fwd<T> e) {
+    return entity_fwd<T>::base_type::to_id(e);
 };
 
 template <typename T>
-static constexpr typename entity<T>::base_type::version_type to_version(entity<T> e) {
-    return entity<T>::base_type::to_version(e);
+static constexpr typename entity_fwd<T>::base_type::version_type to_version(entity_fwd<T> e) {
+    return entity_fwd<T>::base_type::to_version(e);
 };
 
 template <typename T>
-static constexpr entity<T> next(entity<T> e) {
-    return entity<T>{entity<T>::base_type::next(e)};
+static constexpr entity_fwd<T> next(entity_fwd<T> e) {
+    return entity_fwd<T>{entity_fwd<T>::base_type::next(e)};
 }
 
 };  // namespace forge

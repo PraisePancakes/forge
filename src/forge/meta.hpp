@@ -42,6 +42,10 @@ struct is_unique_set<T> : std::true_type {};
 template <typename T, typename... Ts>
 struct is_unique_set<T, Ts...> : std::conditional_t<(std::is_same_v<T, Ts> || ...), std::false_type, is_unique_set<Ts...>> {};
 
+template <template <typename...> class T, typename... Ts>
+struct is_unique_set<T<Ts...>> : is_unique_set<Ts...> {};
+
 template <typename... Ts>
 constexpr static bool is_unique_set_v = is_unique_set<Ts...>::value;
+
 }  // namespace forge::meta

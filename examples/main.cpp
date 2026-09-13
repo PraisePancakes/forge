@@ -1,8 +1,15 @@
 #include <forge/forge.hpp>
 #include <iostream>
 
+void foo(const forge::registry<int, char>& w, forge::entity e) {
+    const auto c = w.get_component<int>(e);
+    std::cout << c;
+};
+
 int main() {
-    static_assert(forge::meta::is_unique_set<int, char>::value);
-    static_assert(std::is_same_v<forge::meta::type_of<2, int, char, bool>::type, bool>);
+    forge::registry<std::tuple<int, char>> world;
+    auto e = world.make();
+    auto component = world.add_component<int>(e, 5);
+    std::cout << component << std::endl;
     return 0;
 }
