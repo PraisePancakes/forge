@@ -2,6 +2,7 @@
 #include <vector>
 namespace forge::storage {
 template <typename CTy, typename KeyType>
+    requires(!std::is_same_v<CTy, bool>)
 class sparse_set {
     std::vector<CTy> dense;
     std::vector<KeyType> dense_mirror;
@@ -21,6 +22,16 @@ class sparse_set {
         sparse[e] = dense.size();
         dense_mirror.push_back(e);
         dense.emplace_back(std::forward<Args>(args)...);
+    };
+    // swap and pop
+    void remove(KeyType e) {
+        if (!contains(e)) return;
+        std::swap(dense[sparse[e]], dense.back());
+        std::swap(dense_mirror[sparse[e]], dense_mirror.back());
+        sparse[dense_mirror[sparse[e]]] = sparse[e];
+        dense.pop_back();
+        dense_mirror.pop_back();
+        sparse[e] = EMPTY;
     };
 
     bool contains(KeyType e) const noexcept {

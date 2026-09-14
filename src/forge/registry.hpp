@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <stack>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -11,18 +12,60 @@ namespace forge {
 using entity = entity_fwd<std::uint64_t>;
 
 template <typename... ComponentRegistry>
-    requires(meta::is_unique_set_v<ComponentRegistry...>)
+    requires(meta::is_unique_set_v<ComponentRegistry...> && !meta::contains_it<bool>)
 class registry {
     template <typename T>
     using sparse_set_t = storage::sparse_set<T, entity::id_type>;
+    std::stack<entity> entity_store;
+    std::vector<entity::version_type> version_history;
 
    public:
     std::tuple<sparse_set_t<ComponentRegistry>...> storage_map;
     /**
-     * @brief creates an entity identifier.
+     * @brief creates a new entity identifier unless an identifier can be recycled then we use the next version of the recycled identifier.
      */
     entity make() {
-        return entity{};
+        if (!entity_store.empty()) {
+            auto e = entity_store.top();
+            entity_store.pop();
+            return next(e);
+        }
+        entity e{};
+        version_history.push_back(to_version(e));
+        return e;
+    };
+
+    [[nodiscard]] bool is_alive(const entity e) const noexcept {
+        return version_history[to_id(e)] == to_version(e);
+    }
+
+    template <typename C>
+    [[nodiscard]] bool has_component(const entity e) const noexcept {
+        const sparse_set_t<C>& storage = std::get<meta::index_of<C, ComponentRegistry...>::index>(storage_map);
+        return storage.contains(to_id(e));
+    };
+
+    template <template <typename> typename Logical, typename... Cs>
+        requires((sizeof...(Cs) > 1) && (std::is_same_v<std::logical_and<>, Logical<void>> || std::is_same_v<std::logical_or<>, Logical<void>>))
+    [[nodiscard]] bool has_component(const entity e) const noexcept {
+        if constexpr (std::is_same_v<Logical<void>, std::logical_and<>>)
+            return (has_component<Cs>(e) && ...);
+        else
+            return (has_component<Cs>(e) || ...);
+    }
+
+    template <typename... Cs>
+        requires(sizeof...(Cs) > 1)
+    [[nodiscard]] bool has_component(const entity e) const noexcept {
+        return has_component<std::logical_and, Cs...>(e);
+    }
+
+    // destroy the entity and remove all its components from the sparse set storage
+    void destroy(const entity e) {
+        if (!is_alive(e)) return;
+        std::apply([&e](auto&&... sets) { (sets.remove(to_id(e)), ...); }, this->storage_map);
+        version_history[to_id(e)] = to_version(next(e));
+        this->entity_store.push(e);
     };
 
     /**
@@ -36,11 +79,18 @@ class registry {
     template <typename Component, typename... Args>
         requires((std::is_object_v<Component> || std::is_destructible_v<Component>) &&
                  meta::contains_it<Component, ComponentRegistry...>)
-    Component& add_component(entity e, Args&&... args) {
+    Component& add_component(const entity e, Args&&... args) {
         sparse_set_t<Component>& storage = std::get<meta::index_of<Component, ComponentRegistry...>::index>(storage_map);
         storage.emplace(to_id(e), std::forward<Args>(args)...);
         return storage.get(to_id(e));
     };
+
+    template <typename... Components, typename... Args>
+        requires(sizeof...(Components) == sizeof...(Args) && (sizeof...(Components) > 1))
+    decltype(auto) add_component(const entity e, Args&&... args) {
+        return std::forward_as_tuple(add_component<Components>(e, std::forward<Args>(args))...);
+    };
+
     /**
      * @brief gets component of given type, component must be registered to the ComponentRegistry
      *
@@ -50,7 +100,7 @@ class registry {
      * @return reference to component object
      */
     template <typename Component>
-    [[nodiscard]] decltype(auto) get_component(this auto& self, entity e) noexcept {
+    [[nodiscard]] decltype(auto) get_component(this auto& self, const entity e) noexcept {
         constexpr static std::size_t component_index = meta::index_of<Component, ComponentRegistry...>::index;
         auto& storage = std::get<component_index>(self.storage_map);
         FORGE_ASSERT(storage.contains(to_id(e)), "[SPARSE GET ASSERTION FAILED] Key " << to_id(e) << " is not contained in the sparse storage of component index " << component_index);
@@ -66,7 +116,7 @@ class registry {
      */
     template <typename... Components>
         requires(sizeof...(Components) > 1)
-    [[nodiscard]] decltype(auto) get_component(this auto& self, entity e) noexcept {
+    [[nodiscard]] decltype(auto) get_component(this auto& self, const entity e) noexcept {
         return std::forward_as_tuple(self.template get_component<Components>(e)...);
     }
 };
