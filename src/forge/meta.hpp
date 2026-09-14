@@ -48,4 +48,16 @@ struct is_unique_set<T<Ts...>> : is_unique_set<Ts...> {};
 template <typename... Ts>
 constexpr static bool is_unique_set_v = is_unique_set<Ts...>::value;
 
+namespace detail {
+template <class Tuple, class F, std::size_t... Is>
+void tuple_switch(const std::size_t i, Tuple&& t, F&& f, std::index_sequence<Is...>) {
+    [](...) {}((i == Is && ((void)std::forward<F>(f)(std::get<Is>(std::forward<Tuple>(t))), false))...);
+}
+}  // namespace detail
+
+template <class Tuple, class F>
+void tuple_switch(const std::size_t i, Tuple&& t, F&& f) {
+    static constexpr auto N = std::tuple_size<std::remove_reference_t<Tuple>>::value;
+    detail::tuple_switch(i, std::forward<Tuple>(t), std::forward<F>(f), std::make_index_sequence<N>{});
+}
 }  // namespace forge::meta

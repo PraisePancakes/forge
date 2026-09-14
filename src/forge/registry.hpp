@@ -8,6 +8,7 @@
 #include "entity.hpp"
 #include "meta.hpp"
 #include "storage.hpp"
+#include "view.hpp"
 namespace forge {
 using entity = entity_fwd<std::uint64_t>;
 
@@ -21,6 +22,11 @@ class registry {
 
    public:
     std::tuple<sparse_set_t<ComponentRegistry>...> storage_map;
+
+    template <typename... Ts>
+    [[nodiscard]] decltype(auto) view() noexcept {
+        return view_span<entity::id_type, Ts...>(std::tie(std::get<meta::index_of<std::remove_cvref_t<Ts>, ComponentRegistry...>::index>(storage_map)...));
+    };
     /**
      * @brief creates a new entity identifier unless an identifier can be recycled then we use the next version of the recycled identifier.
      */

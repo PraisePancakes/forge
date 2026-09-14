@@ -9,6 +9,9 @@ class sparse_set {
     std::vector<std::size_t> sparse;
 
    public:
+    using value_type = CTy;
+    using key_type = KeyType;
+
     static constexpr std::size_t EMPTY = std::numeric_limits<std::size_t>::max();
 
     template <typename... Args>
@@ -34,15 +37,41 @@ class sparse_set {
         sparse[e] = EMPTY;
     };
 
-    bool contains(KeyType e) const noexcept {
+    [[nodiscard]] auto begin() noexcept {
+        return dense_mirror.begin();
+    }
+
+    [[nodiscard]] auto end() noexcept {
+        return dense_mirror.end();
+    }
+
+    [[nodiscard]] auto begin() const noexcept {
+        return dense_mirror.begin();
+    }
+
+    [[nodiscard]] auto end() const noexcept {
+        return dense_mirror.end();
+    }
+
+    [[nodiscard]] auto cbegin() const noexcept {
+        return dense_mirror.cbegin();
+    }
+
+    [[nodiscard]] auto cend() const noexcept {
+        return dense_mirror.cend();
+    }
+    [[nodiscard]] std::size_t size() const noexcept {
+        return this->dense_mirror.size();
+    }
+    [[nodiscard]] bool contains(KeyType e) const noexcept {
         return e < sparse.size() && sparse[e] != EMPTY;
     }
 
-    CTy& get(KeyType e) noexcept {
+    [[nodiscard]] CTy& get(KeyType e) noexcept {
         return dense[sparse[e]];
     };
 
-    const CTy& get(KeyType e) const noexcept {
+    [[nodiscard]] const CTy& get(KeyType e) const noexcept {
         return dense[sparse[e]];
     }
 };
