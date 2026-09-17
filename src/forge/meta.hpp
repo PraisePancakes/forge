@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-
+#include <tuple>
 namespace forge::meta {
 template <typename T, typename... Ts>
 constexpr static bool contains_it = (std::is_same_v<T, Ts> || ...);
@@ -11,7 +11,7 @@ using value = std::integral_constant<std::size_t, I>;
 template <typename T, typename... Ts>
     requires(contains_it<T, Ts...>)
 struct index_of {
-    static constexpr std::size_t index =
+    static constexpr std::size_t value =
         []<std::size_t... Is>(std::index_sequence<Is...>) {
             std::size_t result{};
             ((std::is_same_v<T, Ts> ? result = Is : result), ...);
@@ -33,6 +33,9 @@ struct type_of<Index, Head, Tail...> {
     using type = typename type_of<Index - 1, Tail...>::type;
 };
 
+template <std::size_t Index, typename... Ts>
+using type_of_t = type_of<Index, Ts...>::type;
+
 template <typename... Ts>
 struct is_unique_set;
 
@@ -49,15 +52,25 @@ template <typename... Ts>
 constexpr static bool is_unique_set_v = is_unique_set<Ts...>::value;
 
 namespace detail {
-template <class Tuple, class F, std::size_t... Is>
-void tuple_switch(const std::size_t i, Tuple&& t, F&& f, std::index_sequence<Is...>) {
-    [](...) {}((i == Is && ((void)std::forward<F>(f)(std::get<Is>(std::forward<Tuple>(t))), false))...);
-}
+
+template <typename Tup, typename Func, std::size_t... I>
+void runtime_tuple_get(const std::size_t index, Tup&& tup, Func&& f, const std::index_sequence<I...>) {
+    /*  let index = 1;
+        []() { I == 0 && f(tup)} (), <- doesn't call since && short circuits on I != index.
+        []() { I == 1 && f(tup)} (), <- calls since && is met
+        since f(tup) is not a boolean argument we pass the short circuit, then discard f(tup) with a comma operator to a boolean argument in this case it can be false/true doesnt really matter
+    */
+
+    (([&]() { (void)(I == index && (std::forward<Func>(f)(std::get<I>(std::forward<Tup>(tup))), false)); }()), ...);
+};
+
 }  // namespace detail
 
-template <class Tuple, class F>
-void tuple_switch(const std::size_t i, Tuple&& t, F&& f) {
-    static constexpr auto N = std::tuple_size<std::remove_reference_t<Tuple>>::value;
-    detail::tuple_switch(i, std::forward<Tuple>(t), std::forward<F>(f), std::make_index_sequence<N>{});
+template <typename Tup, typename Func>
+void runtime_tuple_get(const std::size_t index, Tup&& t, Func&& f) {
+    detail::runtime_tuple_get(index,
+                              std::forward<Tup>(t),
+                              std::forward<Func>(f),
+                              std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<Tup>>>{});
 }
 }  // namespace forge::meta

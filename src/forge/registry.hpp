@@ -13,19 +13,37 @@ namespace forge {
 using entity = entity_fwd<std::uint64_t>;
 
 template <typename... ComponentRegistry>
-    requires(meta::is_unique_set_v<ComponentRegistry...> && !meta::contains_it<bool>)
+    requires(meta::is_unique_set_v<ComponentRegistry...> && !meta::contains_it<bool, ComponentRegistry...>)
 class registry {
     template <typename T>
     using sparse_set_t = storage::sparse_set<T, entity::id_type>;
     std::stack<entity> entity_store;
     std::vector<entity::version_type> version_history;
 
+    template <typename T>
+    static constexpr std::size_t index_of_type = meta::index_of<std::remove_cvref_t<T>, ComponentRegistry...>::value;
+
+    template <std::size_t Index>
+    using type_of_t = meta::type_of_t<Index, ComponentRegistry...>;
+
+    template <typename... Ts>
+    using storage_pool_type = std::tuple<sparse_set_t<type_of_t<index_of_type<Ts>>>...>;
+
    public:
     std::tuple<sparse_set_t<ComponentRegistry>...> storage_map;
 
+    registry() = default;
+    registry(const registry&) = delete;
+    registry& operator=(const registry&) = delete;
+    registry(registry&&) = default;
+    registry& operator=(registry&&) = default;
+
     template <typename... Ts>
+        requires(sizeof...(Ts) <= sizeof...(ComponentRegistry))
     [[nodiscard]] decltype(auto) view() noexcept {
-        return view_span<entity::id_type, Ts...>(std::tie(std::get<meta::index_of<std::remove_cvref_t<Ts>, ComponentRegistry...>::index>(storage_map)...));
+        static_assert((meta::contains_it<Ts, ComponentRegistry...> && ...),
+                      "Error: Provided view type(s) is not a subset of the world's component registry!");
+        return view_span<entity::id_type, Ts...>(std::forward_as_tuple(std::get<index_of_type<Ts>>(storage_map)...));
     };
     /**
      * @brief creates a new entity identifier unless an identifier can be recycled then we use the next version of the recycled identifier.
@@ -86,7 +104,7 @@ class registry {
         requires((std::is_object_v<Component> || std::is_destructible_v<Component>) &&
                  meta::contains_it<Component, ComponentRegistry...>)
     Component& add_component(const entity e, Args&&... args) {
-        sparse_set_t<Component>& storage = std::get<meta::index_of<Component, ComponentRegistry...>::index>(storage_map);
+        sparse_set_t<Component>& storage = std::get<meta::index_of<Component, ComponentRegistry...>::value>(storage_map);
         storage.emplace(to_id(e), std::forward<Args>(args)...);
         return storage.get(to_id(e));
     };
