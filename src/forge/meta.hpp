@@ -50,10 +50,21 @@ struct is_unique_set<T<Ts...>> : is_unique_set<Ts...> {};
 
 template <typename... Ts>
 constexpr static bool is_unique_set_v = is_unique_set<Ts...>::value;
-
+namespace _INTERNAL {
 namespace detail {
-
 template <typename Tup, typename Func, std::size_t... I>
+consteval bool invocable_for_each(std::index_sequence<I...>) {
+    return (std::is_invocable_v<Func, decltype(std::get<I>(std::declval<Tup>()))> && ...);
+}
+// we need to constrain this function template's tuple argument, this function is solely an internal helper to find an index of the smallest storage in our pool,
+// this index represents our driving index and will be the basis of all view iterations.
+// now one caveat of this internal helper function is that all types in the tuple must have the same method/operator for this to work,
+// if one type does not have a consistent method/operator a compiler error will raise,
+// this is due to the detail::runtime_tuple_get which executes essentially the same callback for each tuple type, you can see why this can fail if used improperly.
+// So to constrain this internal helper, we must constrain such that Func is invocable for each tuple argument.
+// these constraints allow for a "homogeneous-template-tuple-get"
+template <typename Tup, typename Func, std::size_t... I>
+    requires(invocable_for_each<Tup, Func>(std::index_sequence<I...>{}))
 void runtime_tuple_get(const std::size_t index, Tup&& tup, Func&& f, const std::index_sequence<I...>) {
     /*  let index = 1;
         []() { I == 0 && f(tup)} (), <- doesn't call since && short circuits on I != index.
@@ -67,10 +78,12 @@ void runtime_tuple_get(const std::size_t index, Tup&& tup, Func&& f, const std::
 }  // namespace detail
 
 template <typename Tup, typename Func>
-void runtime_tuple_get(const std::size_t index, Tup&& t, Func&& f) {
+void homogeneous_template_tuple_get(const std::size_t index, Tup&& t, Func&& f) {
     detail::runtime_tuple_get(index,
                               std::forward<Tup>(t),
                               std::forward<Func>(f),
                               std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<Tup>>>{});
 }
+}  // namespace _INTERNAL
+
 }  // namespace forge::meta
