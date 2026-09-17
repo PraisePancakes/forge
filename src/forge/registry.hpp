@@ -41,10 +41,12 @@ class registry {
     template <typename... Ts>
         requires(sizeof...(Ts) <= sizeof...(ComponentRegistry))
     [[nodiscard]] decltype(auto) view() noexcept {
-        static_assert((meta::contains_it<Ts, ComponentRegistry...> && ...),
-                      "Error: Provided view type(s) is not a subset of the world's component registry!");
-        return view_span<entity::id_type, Ts...>(std::forward_as_tuple(std::get<index_of_type<Ts>>(storage_map)...));
-    };
+        static_assert((meta::contains_it<std::remove_cvref_t<Ts>, ComponentRegistry...> && ...), "Error: Provided view type(s) is not a subset of the world's component registry!");
+
+        return view_span<entity::id_type, Ts...>(
+            std::forward_as_tuple(
+                std::get<index_of_type<std::remove_cvref_t<Ts>>>(storage_map)...));
+    }
     /**
      * @brief creates a new entity identifier unless an identifier can be recycled then we use the next version of the recycled identifier.
      */
@@ -125,7 +127,7 @@ class registry {
      */
     template <typename Component>
     [[nodiscard]] decltype(auto) get_component(this auto& self, const entity e) noexcept {
-        constexpr static std::size_t component_index = meta::index_of<Component, ComponentRegistry...>::index;
+        constexpr static std::size_t component_index = meta::index_of<Component, ComponentRegistry...>::value;
         auto& storage = std::get<component_index>(self.storage_map);
         FORGE_ASSERT(storage.contains(to_id(e)), "[SPARSE GET ASSERTION FAILED] Key " << to_id(e) << " is not contained in the sparse storage of component index " << component_index);
         return storage.get(to_id(e));
