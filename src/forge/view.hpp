@@ -43,7 +43,7 @@ class view_span {
     };
 
     template <typename Func, std::size_t... Is>
-    void propogate_cv_callback(Func& callback, const key_type e, const std::index_sequence<Is...>) {
+    void propagate_cv_callback(Func& callback, const key_type e, const std::index_sequence<Is...>) {
         callback([&]<std::size_t I>(const std::integral_constant<std::size_t, I>) -> decltype(auto) {
             auto& storage = std::get<I>(packed_storage_pool);
             using query_type = std::tuple_element_t<I, std::tuple<Queries...>>;
@@ -65,7 +65,7 @@ class view_span {
         meta::_INTERNAL::homogeneous_template_tuple_get(driving_index, packed_storage_pool, [&callback, this](const auto& arg) {
             for (const auto& e : arg) {
                 if (!contains_in_every(e, this->packed_storage_pool)) continue;
-                this->propogate_cv_callback(callback, e, std::make_index_sequence<sizeof...(Queries)>{});
+                this->propagate_cv_callback(callback, e, std::make_index_sequence<sizeof...(Queries)>{});
             };
         });
     };
