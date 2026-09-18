@@ -28,10 +28,9 @@ class registry {
 
     template <typename... Ts>
     using storage_pool_type = std::tuple<sparse_set_t<type_of_t<index_of_type<Ts>>>...>;
-
-   public:
     std::tuple<sparse_set_t<ComponentRegistry>...> storage_map;
 
+   public:
     registry() = default;
     registry(const registry&) = delete;
     registry& operator=(const registry&) = delete;
