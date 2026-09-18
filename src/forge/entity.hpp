@@ -73,8 +73,11 @@ struct base_entity {
 template <typename EntityType>
 struct entity_fwd : _INTERNAL::base_entity<EntityType> {
     using base_type = _INTERNAL::base_entity<EntityType>;
+
+   private:
     typename base_type::value_type value;
 
+   public:
     operator typename base_type::value_type() const {
         return this->value;
     };

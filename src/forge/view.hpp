@@ -42,15 +42,24 @@ class view_span {
                           pool);
     };
 
+    template <std::size_t I>
+    decltype(auto) pool_of(const key_type e) {
+        auto& storage = std::get<I>(packed_storage_pool);
+        using query_type = std::tuple_element_t<I, std::tuple<Queries...>>;
+        if constexpr (std::is_const_v<std::remove_reference_t<query_type>>) {
+            return std::as_const(storage.get(e));
+        } else {
+            return (storage.get(e));
+        }
+    };
+
     // we must check whether the callback is invocable with an extended key_type if it is call it with the extended key type, otherwise call it witout.
     template <typename Func, std::size_t... Is>
     void propagate_cv_callback(const key_type e, Func& callback, const std::index_sequence<Is...>) {
-        callback([&]<std::size_t I>(const std::integral_constant<std::size_t, I>) -> decltype(auto) { 
-                        auto& storage = std::get<I>(packed_storage_pool); 
-                        using query_type = std::tuple_element_t<I, std::tuple<Queries...>>; 
-                        if constexpr (std::is_const_v<std::remove_reference_t<query_type>>) 
-                            return std::as_const(storage.get(e)); 
-                        else return (storage.get(e)); }(std::integral_constant<std::size_t, Is>{})...);
+        if constexpr (std::is_invocable_v<Func, key_type, decltype(pool_of<Is>(e))...>)
+            callback(e, pool_of<Is>(e)...);
+        else if constexpr (std::is_invocable_v<Func, decltype(pool_of<Is>(e))...>)
+            callback(pool_of<Is>(e)...);
     }
 
    public:
