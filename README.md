@@ -100,6 +100,49 @@ int main() {
     return 0;
 }
 ```
+**OUTPUT:**
+```
+=== Get concurrently (immutable) -> tuple of immutable references ===
+i2 : 4, c2 : a
+=== Implicit has all ===
+true
+false
+=== Explicit has all ===
+true
+false
+=== Explicit has or ===
+true
+false
+=== Before destroy===
+Entity { ID : 0, VERSION : 0}
+is alive : true
+=== After destroy===
+is alive : false
+making entity Entity { ID : 0, VERSION : 1}
+making entity Entity { ID : 1, VERSION : 0}
+making entity Entity { ID : 2, VERSION : 0}
+making entity Entity { ID : 3, VERSION : 0}
+making entity Entity { ID : 4, VERSION : 0}
+making entity Entity { ID : 5, VERSION : 0}
+making entity Entity { ID : 6, VERSION : 0}
+making entity Entity { ID : 7, VERSION : 0}
+making entity Entity { ID : 8, VERSION : 0}
+making entity Entity { ID : 9, VERSION : 0}
+=== Make a immutable view ===
+Int component : 0, String component : even
+Int component : 2, String component : even
+Int component : 4, String component : even
+Int component : 6, String component : even
+Int component : 8, String component : even
+=== Make an extendable view ===
+Entity { ID : 0, VERSION : 1} has Int component: 0, String component: even
+Entity { ID : 2, VERSION : 0} has Int component: 2, String component: even
+Entity { ID : 4, VERSION : 0} has Int component: 4, String component: even
+Entity { ID : 6, VERSION : 0} has Int component: 6, String component: even
+Entity { ID : 8, VERSION : 0} has Int component: 8, String component: even
+=== Make a mutable view ===
+Entity { ID : 0, VERSION : 1} Int component: 0 String component: Not even
+```
 # Usage
 `Forge` is a header-only library, simply `#include <forge/forge.hpp` at the top of your file and you got it!
 ## Requirements
