@@ -7,6 +7,7 @@
 #include <string>
 #include <type_traits>
 namespace forge {
+#define FORGE_DEBUG_ENTITY 0
 
 template <typename PackedTy>
     requires(std::is_unsigned_v<PackedTy>)
@@ -87,11 +88,13 @@ struct entity_fwd : _INTERNAL::base_entity<EntityType> {
         : value{value} {}
 
     friend std::ostream& operator<<(std::ostream& os, const entity_fwd<EntityType>& e) {
-        os << "Entity {" << std::endl;
-        os << "BIT REP : " + base_type::to_bit_string(e) << std::endl;
-        os << "ID      : " + std::to_string(base_type::to_id(e)) << std::endl;
-        os << "VERSION : " + std::to_string(base_type::to_version(e)) << std::endl;
-        os << "};" << std::endl;
+        os << "Entity { ";
+#if FORGE_DEBUG_ENTITY
+        os << "BIT REP : " + base_type::to_bit_string(e) << ", ";
+#endif
+        os << "ID : " + std::to_string(base_type::to_id(e)) << ", ";
+        os << "VERSION : " + std::to_string(base_type::to_version(e));
+        os << "}";
         return os;
     };
 };

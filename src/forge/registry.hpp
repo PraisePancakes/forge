@@ -67,7 +67,8 @@ class registry {
 
     template <typename C>
     [[nodiscard]] bool has_component(const entity e) const noexcept {
-        const sparse_set_t<C>& storage = std::get<meta::index_of<C, ComponentRegistry...>::index>(storage_map);
+        using stripped_type = std::remove_cvref_t<C>;
+        const sparse_set_t<stripped_type>& storage = std::get<meta::index_of<stripped_type, ComponentRegistry...>::value>(storage_map);
         return storage.contains(e);
     };
 
@@ -127,10 +128,13 @@ class registry {
      */
     template <typename Component>
     [[nodiscard]] decltype(auto) get_component(this auto& self, const entity e) noexcept {
-        constexpr static std::size_t component_index = meta::index_of<Component, ComponentRegistry...>::value;
+        constexpr static std::size_t component_index = meta::index_of<std::remove_cvref_t<Component>, ComponentRegistry...>::value;
         auto& storage = std::get<component_index>(self.storage_map);
         FORGE_ASSERT(storage.contains(e), "[SPARSE GET ASSERTION FAILED] Entity " << e << " is not contained in the sparse storage of component index " << component_index);
-        return storage.get(e);
+        if constexpr (std::is_const_v<Component>)
+            return std::as_const(storage.get(e));
+        else
+            return storage.get(e);
     }
     /**
      * @brief gets components of given type, components must be registered to the ComponentRegistry

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.28)
 set(FORGE_VERSION_REGEX "#define FORGE_VERSION_.*[ \t]+(.+)")
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/src/forge/config/version.hpp" FORGE_VERSION REGEX ${FORGE_VERSION_REGEX})
 list(TRANSFORM FORGE_VERSION REPLACE ${FORGE_VERSION_REGEX} "\\1")
@@ -23,9 +23,12 @@ message(STATUS  "*")
 
 
 add_library(${PROJECT_NAME} INTERFACE)
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
 target_include_directories(${PROJECT_NAME}
     INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)
 target_compile_options(${PROJECT_NAME}
@@ -34,7 +37,7 @@ target_compile_options(${PROJECT_NAME}
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra>
 )
 
-option(FORGE_BUILD_EXAMPLES "Build Forge examples" ON)
+option(FORGE_BUILD_EXAMPLES "Build Forge examples" OFF)
 if(FORGE_BUILD_EXAMPLES)
     add_executable(forge_example examples/main.cpp)
     target_link_libraries(forge_example PRIVATE forge)
