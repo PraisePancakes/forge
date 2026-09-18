@@ -42,7 +42,7 @@ struct base_entity {
    public:
     static value_type generate_next() noexcept {
         static id_type serial{0};
-        return static_cast<value_type>(++serial) << std::numeric_limits<version_type>::digits;
+        return static_cast<value_type>(serial++) << std::numeric_limits<version_type>::digits;
     };
 
     [[nodiscard]] static constexpr id_type to_id(value_type value) noexcept {
@@ -92,7 +92,6 @@ struct entity_fwd : _INTERNAL::base_entity<EntityType> {
         return os;
     };
 };
-
 
 template <typename T>
 static constexpr typename entity_fwd<T>::base_type::id_type to_id(entity_fwd<T> e) {

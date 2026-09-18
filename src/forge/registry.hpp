@@ -16,7 +16,7 @@ template <typename... ComponentRegistry>
     requires(meta::is_unique_set_v<ComponentRegistry...> && !meta::contains_it<bool, ComponentRegistry...>)
 class registry {
     template <typename T>
-    using sparse_set_t = storage::sparse_set<T, entity::id_type>;
+    using sparse_set_t = storage::sparse_set<T, entity>;
     std::stack<entity> entity_store;
     std::vector<entity::version_type> version_history;
 
@@ -43,7 +43,7 @@ class registry {
     [[nodiscard]] decltype(auto) view() noexcept {
         static_assert((meta::contains_it<std::remove_cvref_t<Ts>, ComponentRegistry...> && ...), "Error: Provided view type(s) is not a subset of the world's component registry!");
 
-        return view_span<entity::id_type, Ts...>(
+        return view_span<entity, Ts...>(
             std::forward_as_tuple(
                 std::get<index_of_type<std::remove_cvref_t<Ts>>>(storage_map)...));
     }
@@ -68,7 +68,7 @@ class registry {
     template <typename C>
     [[nodiscard]] bool has_component(const entity e) const noexcept {
         const sparse_set_t<C>& storage = std::get<meta::index_of<C, ComponentRegistry...>::index>(storage_map);
-        return storage.contains(to_id(e));
+        return storage.contains(e);
     };
 
     template <template <typename> typename Logical, typename... Cs>
@@ -89,7 +89,7 @@ class registry {
     // destroy the entity and remove all its components from the sparse set storage
     void destroy(const entity e) {
         if (!is_alive(e)) return;
-        std::apply([&e](auto&&... sets) { (sets.remove(to_id(e)), ...); }, this->storage_map);
+        std::apply([&e](auto&&... sets) { (sets.remove(e), ...); }, this->storage_map);
         version_history[to_id(e)] = to_version(next(e));
         this->entity_store.push(e);
     };
@@ -107,8 +107,8 @@ class registry {
                  meta::contains_it<Component, ComponentRegistry...>)
     Component& add_component(const entity e, Args&&... args) {
         sparse_set_t<Component>& storage = std::get<meta::index_of<Component, ComponentRegistry...>::value>(storage_map);
-        storage.emplace(to_id(e), std::forward<Args>(args)...);
-        return storage.get(to_id(e));
+        storage.emplace(e, std::forward<Args>(args)...);
+        return storage.get(e);
     };
 
     template <typename... Components, typename... Args>
@@ -129,8 +129,8 @@ class registry {
     [[nodiscard]] decltype(auto) get_component(this auto& self, const entity e) noexcept {
         constexpr static std::size_t component_index = meta::index_of<Component, ComponentRegistry...>::value;
         auto& storage = std::get<component_index>(self.storage_map);
-        FORGE_ASSERT(storage.contains(to_id(e)), "[SPARSE GET ASSERTION FAILED] Key " << to_id(e) << " is not contained in the sparse storage of component index " << component_index);
-        return storage.get(to_id(e));
+        FORGE_ASSERT(storage.contains(e), "[SPARSE GET ASSERTION FAILED] Entity " << e << " is not contained in the sparse storage of component index " << component_index);
+        return storage.get(e);
     }
     /**
      * @brief gets components of given type, components must be registered to the ComponentRegistry

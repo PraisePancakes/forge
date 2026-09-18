@@ -16,25 +16,25 @@ class sparse_set {
 
     template <typename... Args>
     void emplace(KeyType e, Args&&... args) {
-        if (e >= sparse.size()) {
-            sparse.resize(e + 1, EMPTY);
+        if (to_id(e) >= sparse.size()) {
+            sparse.resize(to_id(e) + 1, EMPTY);
         }
-        if (sparse[e] != EMPTY) {
+        if (sparse[to_id(e)] != EMPTY) {
             return;
         }
-        sparse[e] = dense.size();
+        sparse[to_id(e)] = dense.size();
         dense_mirror.push_back(e);
         dense.emplace_back(std::forward<Args>(args)...);
     };
     // swap and pop
     void remove(KeyType e) {
         if (!contains(e)) return;
-        std::swap(dense[sparse[e]], dense.back());
-        std::swap(dense_mirror[sparse[e]], dense_mirror.back());
-        sparse[dense_mirror[sparse[e]]] = sparse[e];
+        std::swap(dense[sparse[to_id(e)]], dense.back());
+        std::swap(dense_mirror[sparse[to_id(e)]], dense_mirror.back());
+        sparse[dense_mirror[sparse[to_id(e)]]] = sparse[to_id(e)];
         dense.pop_back();
         dense_mirror.pop_back();
-        sparse[e] = EMPTY;
+        sparse[to_id(e)] = EMPTY;
     };
 
     [[nodiscard]] auto begin() noexcept {
@@ -64,15 +64,15 @@ class sparse_set {
         return this->dense_mirror.size();
     }
     [[nodiscard]] bool contains(KeyType e) const noexcept {
-        return e < sparse.size() && sparse[e] != EMPTY;
+        return to_id(e) < sparse.size() && sparse[to_id(e)] != EMPTY;
     }
 
     [[nodiscard]] CTy& get(KeyType e) noexcept {
-        return dense[sparse[e]];
+        return dense[sparse[to_id(e)]];
     };
 
     [[nodiscard]] const CTy& get(KeyType e) const noexcept {
-        return dense[sparse[e]];
+        return dense[sparse[to_id(e)]];
     }
 };
 
