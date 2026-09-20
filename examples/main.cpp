@@ -77,6 +77,20 @@ int main() {
             std::cout << e << " Int component: " << i << " String component: " << world.get_component<std::string>(e) << std::endl;
         }
     });
+
+    std::cout << "=== View with iterator ===" << std::endl;
+    for (const auto e : mutable_view) {
+        std::cout << e << std::endl;
+    }
+
+    std::cout << "===  Each with Mutable iterator ===" << std::endl;
+    for (auto [i, s] : mutable_view.each()) {
+        i = 4;
+    };
+
+    mutable_view.each([&world](const forge::entity e, auto& i, auto& s) {
+        std::cout << e << " Int component: " << i << " String component: " << world.get_component<std::string>(e) << std::endl;
+    });
 #endif
     return 0;
 }

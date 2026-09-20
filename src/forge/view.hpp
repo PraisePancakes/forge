@@ -5,7 +5,10 @@
 
 #include "storage.hpp"
 namespace forge {
-
+namespace _INTERNAL::TAGS {
+struct deref_row_wise_tag;
+struct deref_column_wise_tag;
+}  // namespace _INTERNAL::TAGS
 namespace _INTERNAL::ALGORITHMS {
 template <typename PoolType>
 std::size_t get_driving_index(PoolType p) {
@@ -84,7 +87,7 @@ class basic_view_iterator {
     pointer operator->() { return ptr; }
 };
 
-template <typename BaseIterator, typename PoolType, typename Ty, typename... Ts>
+template <typename DerefTag, typename BaseIterator, typename PoolType, typename Ty, typename... Ts>
 class view_iterator {
     using iterator_traits = std::iterator_traits<BaseIterator>;
     using pointer = iterator_traits::pointer;
@@ -117,9 +120,13 @@ class view_iterator {
         return *this->iter;
     }
     decltype(auto) operator*() {
-        return [this]<std::size_t... Is>(std::index_sequence<Is...>) {
-            return std::forward_as_tuple(_INTERNAL::ALGORITHMS::pool_of<Is, Ty, Ts...>(*this->iter, this->pool)...);
-        }(std::make_index_sequence<sizeof...(Ts)>{});
+        if constexpr (std::is_same_v<DerefTag, _INTERNAL::TAGS::deref_column_wise_tag>) {
+            return [this]<std::size_t... Is>(std::index_sequence<Is...>) {
+                return std::forward_as_tuple(_INTERNAL::ALGORITHMS::pool_of<Is, Ty, Ts...>(*this->iter, this->pool)...);
+            }(std::make_index_sequence<sizeof...(Ts)>{});
+        } else if constexpr (std::is_same_v<DerefTag, _INTERNAL::TAGS::deref_row_wise_tag>) {
+            return this->get_value();
+        }
     }
 
     friend bool operator==(const view_iterator& a, const view_iterator& b) {
@@ -135,7 +142,7 @@ class basic_view_container {
    protected:
     using value_type = Ty;
     using pool_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<Ts>, Ty>&...>;
-    using iterator = view_iterator<basic_view_iterator<Ty>, pool_type, Ty, Ts...>;
+    using iterator = view_iterator<_INTERNAL::TAGS::deref_column_wise_tag, basic_view_iterator<Ty>, pool_type, Ty, Ts...>;
     pool_type pool;
     std::size_t driving_index;
 
@@ -148,7 +155,19 @@ class basic_view_container {
         return iterator{this->driving_index, 0, this->pool};
     };
 
+    const iterator begin() const {
+        return iterator{this->driving_index, 0, this->pool};
+    };
+
     iterator end() {
+        std::size_t end_index = 0;
+        meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->pool, [&end_index](auto&& arg) {
+            end_index = arg.size();
+        });
+        return iterator{this->driving_index, end_index, this->pool};
+    };
+
+    const iterator end() const {
         std::size_t end_index = 0;
         meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->pool, [&end_index](auto&& arg) {
             end_index = arg.size();
@@ -161,7 +180,7 @@ template <typename Ty, typename... Ts>
 class view_span : private basic_view_container<Ty, Ts...> {
     using container_traits = basic_view_container<Ty, Ts...>;
     using pool_type = container_traits::pool_type;
-    using iterator = view_iterator<basic_view_iterator<Ty>, pool_type, Ty, Ts...>;
+    using iterator = view_iterator<_INTERNAL::TAGS::deref_row_wise_tag, basic_view_iterator<Ty>, pool_type, Ty, Ts...>;
 
     template <typename Func, std::size_t... Is>
     void propagate_cv_callback(
@@ -180,6 +199,17 @@ class view_span : private basic_view_container<Ty, Ts...> {
 
     container_traits& each() {
         return *this;
+    };
+    const iterator begin() const {
+        return iterator{this->driving_index, 0, this->pool};
+    };
+
+    const iterator end() const {
+        std::size_t end_index = 0;
+        meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->pool, [&end_index](auto&& arg) {
+            end_index = arg.size();
+        });
+        return iterator{this->driving_index, end_index, this->pool};
     };
 
     iterator begin() {
