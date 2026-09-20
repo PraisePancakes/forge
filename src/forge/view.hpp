@@ -178,8 +178,8 @@ class basic_view_container {
 
 template <typename Ty, typename... Ts>
 class view_span : private basic_view_container<Ty, Ts...> {
-    using container_traits = basic_view_container<Ty, Ts...>;
-    using pool_type = container_traits::pool_type;
+    using underlying_container = basic_view_container<Ty, Ts...>;
+    using pool_type = underlying_container::pool_type;
     using iterator = view_iterator<_INTERNAL::TAGS::deref_row_wise_tag, basic_view_iterator<Ty>, pool_type, Ty, Ts...>;
 
     template <typename Func, std::size_t... Is>
@@ -197,7 +197,7 @@ class view_span : private basic_view_container<Ty, Ts...> {
    public:
     view_span(pool_type pool) : basic_view_container<Ty, Ts...>{pool} {};
 
-    container_traits& each() {
+    underlying_container& each() {
         return *this;
     };
     const iterator begin() const {
@@ -226,7 +226,7 @@ class view_span : private basic_view_container<Ty, Ts...> {
 
     template <typename Func>
     void each(Func&& f) {
-        for (auto it = container_traits::begin(); it != container_traits::end(); it++) {
+        for (auto it = underlying_container::begin(); it != underlying_container::end(); it++) {
             this->propagate_cv_callback(it.get_value(), f, std::make_index_sequence<sizeof...(Ts)>{});
         }
     };
