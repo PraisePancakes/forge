@@ -107,7 +107,7 @@ int main() {
         i = 4;
     };
 
-    mutable_view.each([&world](const forge::entity e, auto& i, auto& s) {
+    mutable_view.each([](const forge::entity e, auto& i, auto& s) {
         std::cout << e << " Int component: " << i << " String component: " << s << std::endl;
     });
     return 0;
