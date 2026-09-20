@@ -1,6 +1,16 @@
 #include <forge/forge.hpp>
 
 int main() {
+    forge::registry<int, char> world;
+    auto e = world.make();
+    world.add_component<int, char>(e, 1, 'c');
+    auto v = world.view<const int, char>();
+    for (auto [i, c] : v) {
+        c = 'a';
+    }
+    std::cout << world.get_component<char>(e);
+
+#if 0 
     // define your registry with a list of components
     forge::registry<int, char, float, std::string, long> world;
 
@@ -76,6 +86,6 @@ int main() {
             std::cout << e << " Int component: " << i << " String component: " << world.get_component<std::string>(e) << std::endl;
         }
     });
-
+#endif
     return 0;
 }

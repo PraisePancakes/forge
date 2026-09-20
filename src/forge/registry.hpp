@@ -41,10 +41,10 @@ class registry {
         requires(sizeof...(Ts) <= sizeof...(ComponentRegistry))
     [[nodiscard]] decltype(auto) view() noexcept {
         static_assert((meta::contains_it<std::remove_cvref_t<Ts>, ComponentRegistry...> && ...), "Error: Provided view type(s) is not a subset of the world's component registry!");
-
-        return view_span<entity, Ts...>(
-            std::forward_as_tuple(
-                std::get<index_of_type<std::remove_cvref_t<Ts>>>(storage_map)...));
+        return view_span<entity, Ts...>(std::forward_as_tuple(std::get<index_of_type<std::remove_cvref_t<Ts>>>(storage_map)...));
+        // return view_span<entity, Ts...>(
+        //     std::forward_as_tuple(
+        //         std::get<index_of_type<std::remove_cvref_t<Ts>>>(storage_map)...));
     }
     /**
      * @brief creates a new entity identifier unless an identifier can be recycled then we use the next version of the recycled identifier.

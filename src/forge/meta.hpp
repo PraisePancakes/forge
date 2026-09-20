@@ -70,8 +70,8 @@ void runtime_tuple_get(const std::size_t index, Tup&& tup, Func&& f, const std::
         []() { I == 0 && f(tup)} (), <- doesn't call since && short circuits on I != index.
         []() { I == 1 && f(tup)} (), <- calls since && is met
         since f(tup) is not a boolean argument we pass the short circuit, then discard f(tup) with a comma operator to a boolean argument in this case it can be false/true doesnt really matter
+        in an ideal case this should return the value of the callback
     */
-
     (([&]() { (void)(I == index && (std::forward<Func>(f)(std::get<I>(std::forward<Tup>(tup))), false)); }()), ...);
 };
 

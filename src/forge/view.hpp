@@ -5,76 +5,163 @@
 
 #include "storage.hpp"
 namespace forge {
+namespace _INTERNAL::ALGORITHMS {
+template <typename PoolType>
+static std::size_t get_driving_index(PoolType p) {
+    std::size_t idx = 0;
+    std::apply([&idx](auto&&... args) {
+        std::size_t curr_idx = 0;
+        std::size_t min = std::numeric_limits<std::size_t>::max();
+        ([&idx, &curr_idx, &min](const auto& arg) {
+            if (arg.size() > 0 && arg.size() < min) {
+                min = arg.size();
+                idx = curr_idx;
+            }
+            curr_idx++;
+        }(args),
+         ...);
+    },
+               p);
+    return idx;
+};
 
-// entity::id_type     ,  const int, char, etc...
-template <typename Ty, typename... Queries>
-class view_span {
+template <typename E, typename PoolType>
+static bool contains_in_every(const E e, const PoolType p) {
+    return std::apply([&e](auto&&... args) {
+        return (args.contains(e) && ...);
+    },
+                      p);
+};
+
+template <std::size_t I, typename E, typename... Ts, typename PoolType>
+static decltype(auto) pool_of(const E e, PoolType pool) {
+    auto& storage = std::get<I>(pool);
+    using query_type = std::tuple_element_t<I, std::tuple<Ts...>>;
+    if constexpr (std::is_const_v<std::remove_reference_t<query_type>>) {
+        return std::as_const(storage.get(e));
+    } else {
+        return (storage.get(e));
+    }
+};
+
+}  // namespace _INTERNAL::ALGORITHMS
+template <typename T>
+class basic_view_iterator {
    public:
-    using key_type = Ty;
-    using pool_reference_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<Queries>, Ty>&...>;
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
+    using const_pointer = const T*;
+    using const_reference = const T&;
 
    private:
-    pool_reference_type packed_storage_pool;
-    std::size_t driving_index{0};
-
-    static std::size_t get_driving_index(const pool_reference_type pool) {
-        return std::apply([](auto&&... args) {
-            std::size_t min_sz = std::numeric_limits<std::size_t>::max();
-            std::size_t min_idx = 0;
-            std::size_t current_index = 0;
-            (([&min_sz, &min_idx, &current_index](auto&& arg) {
-                 if (arg.size() < min_sz && arg.size() != 0) {
-                     min_sz = arg.size();
-                     min_idx = current_index;
-                 }
-                 current_index++;
-             }(args)),
-             ...);
-            return min_idx;
-        },
-                          pool);
-    };
-
-    static bool contains_in_every(const key_type key, const pool_reference_type pool) {
-        return std::apply([&key](auto&&... args) {
-            return (args.contains(key) && ...);
-        },
-                          pool);
-    };
-
-    template <std::size_t I>
-    decltype(auto) pool_of(const key_type e) {
-        auto& storage = std::get<I>(packed_storage_pool);
-        using query_type = std::tuple_element_t<I, std::tuple<Queries...>>;
-        if constexpr (std::is_const_v<std::remove_reference_t<query_type>>) {
-            return std::as_const(storage.get(e));
-        } else {
-            return (storage.get(e));
-        }
-    };
-
-    // we must check whether the callback is invocable with an extended key_type if it is call it with the extended key type, otherwise call it witout.
-    template <typename Func, std::size_t... Is>
-    void propagate_cv_callback(const key_type e, Func& callback, const std::index_sequence<Is...>) {
-        if constexpr (std::is_invocable_v<Func, key_type, decltype(pool_of<Is>(e))...>)
-            callback(e, pool_of<Is>(e)...);
-        else if constexpr (std::is_invocable_v<Func, decltype(pool_of<Is>(e))...>)
-            callback(pool_of<Is>(e)...);
-    }
+    pointer ptr;
 
    public:
-    view_span(pool_reference_type pool)
-        : packed_storage_pool(pool),
-          driving_index{get_driving_index(pool)} {};
+    basic_view_iterator(pointer p) : ptr{p} {};
 
-    template <typename Func>
-    void each(Func&& callback) {
-        meta::_INTERNAL::homogeneous_template_tuple_get(driving_index, packed_storage_pool, [&callback, this](const auto& arg) {
-            for (const auto& e : arg) {
-                if (!contains_in_every(e, this->packed_storage_pool)) continue;
-                this->propagate_cv_callback(e, callback, std::make_index_sequence<sizeof...(Queries)>{});
-            };
+    friend bool operator==(const basic_view_iterator& a, const basic_view_iterator& b) {
+        return a.ptr == b.ptr;
+    }
+    friend bool operator!=(const basic_view_iterator& a, const basic_view_iterator& b) {
+        return !(a == b);
+    }
+
+    basic_view_iterator& operator++() {
+        this->ptr++;
+        return *this;
+    }
+    basic_view_iterator& operator++(int) {
+        ++this->ptr;
+        return *this;
+    }
+
+    reference operator*() const { return *ptr; }
+    pointer operator->() { return ptr; }
+};
+
+template <typename BaseIterator, typename PoolType, typename Ty, typename... Ts>
+class view_iterator {
+    using iterator_traits = std::iterator_traits<BaseIterator>;
+    using pointer = iterator_traits::pointer;
+    using value_type = iterator_traits::value_type;
+    BaseIterator iter{nullptr};
+    PoolType pool;
+
+   public:
+    view_iterator(const std::size_t driving_index, const std::size_t row_index, const PoolType pool)
+        : pool{pool} {
+        meta::_INTERNAL::homogeneous_template_tuple_get(driving_index, pool, [this, &row_index](auto&& arg) {
+            this->iter = BaseIterator{std::addressof(*(arg.begin() + row_index))};
         });
     };
+    view_iterator& operator++() {
+        this->iter++;
+        while (!_INTERNAL::ALGORITHMS::contains_in_every(*iter, this->pool)) {
+            this->iter++;
+        }
+        return *this;
+    }
+    view_iterator& operator++(int) {
+        ++this->iter;
+        while (!_INTERNAL::ALGORITHMS::contains_in_every(*iter, this->pool)) {
+            ++this->iter;
+        }
+        return *this;
+    }
+
+    decltype(auto) operator*() {
+        return [this]<std::size_t... Is>(std::index_sequence<Is...>) {
+            return std::forward_as_tuple(_INTERNAL::ALGORITHMS::pool_of<Is, Ty, Ts...>(*this->iter, this->pool)...);
+        }(std::make_index_sequence<sizeof...(Ts)>{});
+    }
+
+    friend bool operator==(const view_iterator& a, const view_iterator& b) {
+        return a.iter == b.iter;
+    }
+    friend bool operator!=(const view_iterator& a, const view_iterator& b) {
+        return !(a == b);
+    }
 };
+
+template <typename Ty, typename... Ts>
+class basic_view_container {
+   protected:
+    using value_type = Ty;
+    using pool_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<Ts>, Ty>&...>;
+    using iterator = view_iterator<basic_view_iterator<Ty>, pool_type, Ty, Ts...>;
+
+   private:
+    pool_type pool;
+    std::size_t driving_index;
+
+   public:
+    basic_view_container(pool_type pool)
+        : pool{pool},
+          driving_index{_INTERNAL::ALGORITHMS::get_driving_index(pool)} {};
+
+    iterator begin() {
+        return iterator{this->driving_index, 0, this->pool};
+    };
+
+    iterator end() {
+        std::size_t end_index = 0;
+        meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->pool, [&end_index](auto&& arg) {
+            end_index = arg.size();
+        });
+        return iterator{this->driving_index, end_index, this->pool};
+    };
+};
+
+template <typename Ty, typename... Ts>
+class view_span : public basic_view_container<Ty, Ts...> {
+    using container_traits = basic_view_container<Ty, Ts...>;
+    using pool_type = container_traits::pool_type;
+
+   public:
+    view_span(pool_type pool) : basic_view_container<Ty, Ts...>{pool} {};
+};
+
 };  // namespace forge
