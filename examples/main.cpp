@@ -2,13 +2,15 @@
 
 int main() {
     forge::registry<int, char> world;
-    auto e = world.make();
-    world.add_component<int, char>(e, 1, 'c');
-    auto v = world.view<const int, char>();
-    for (auto [i, c] : v) {
-        c = 'a';
+    for (int i = 0; i < 10; i++) {
+        auto e = world.make();
+        world.add_component<int, char>(e, i, 'a' + i);
     }
-    std::cout << world.get_component<char>(e);
+
+    auto v = world.view<const int, const char>();
+    for (auto [i, c] : v.each()) {
+        std::cout << i << " : " << c << std::endl;
+    }
 
 #if 0 
     // define your registry with a list of components

@@ -156,12 +156,25 @@ class basic_view_container {
 };
 
 template <typename Ty, typename... Ts>
-class view_span : public basic_view_container<Ty, Ts...> {
+class view_span : private basic_view_container<Ty, Ts...> {
     using container_traits = basic_view_container<Ty, Ts...>;
     using pool_type = container_traits::pool_type;
+    using iterator = container_traits::iterator;
 
    public:
     view_span(pool_type pool) : basic_view_container<Ty, Ts...>{pool} {};
+
+    container_traits& each() {
+        return *this;
+    };
+
+
+    template <typename Func>
+    void each(Func&& f) {
+        for (const auto it = container_traits::begin(); it != container_traits::end(); it++) {
+            std::forward<Func>(f)(*it);
+        }
+    };
 };
 
 };  // namespace forge
