@@ -97,8 +97,22 @@ int main() {
         }
     });
 
+    std::cout << "=== View with iterator ===" << std::endl;
+    for (const auto e : mutable_view) {
+        std::cout << e << std::endl;
+    }
+
+    std::cout << "===  Each with Mutable iterator ===" << std::endl;
+    for (auto [i, s] : mutable_view.each()) {
+        i = 4;
+    };
+
+    mutable_view.each([&world](const forge::entity e, auto& i, auto& s) {
+        std::cout << e << " Int component: " << i << " String component: " << s << std::endl;
+    });
     return 0;
 }
+
 ```
 **OUTPUT:**
 ```
@@ -142,6 +156,18 @@ Entity { ID : 6, VERSION : 0} has Int component: 6, String component: even
 Entity { ID : 8, VERSION : 0} has Int component: 8, String component: even
 === Make a mutable view ===
 Entity { ID : 0, VERSION : 1} Int component: 0 String component: Not even
+=== View with iterator ===
+Entity { ID : 0, VERSION : 1}
+Entity { ID : 2, VERSION : 0}
+Entity { ID : 4, VERSION : 0}
+Entity { ID : 6, VERSION : 0}
+Entity { ID : 8, VERSION : 0}
+===  Each with Mutable iterator ===
+Entity { ID : 0, VERSION : 1} Int component: 4 String component: Not even
+Entity { ID : 2, VERSION : 0} Int component: 4 String component: even
+Entity { ID : 4, VERSION : 0} Int component: 4 String component: even
+Entity { ID : 6, VERSION : 0} Int component: 4 String component: even
+Entity { ID : 8, VERSION : 0} Int component: 4 String component: even
 ```
 # Usage
 `Forge` is a header-only library, simply `#include <forge/forge.hpp` at the top of your file and you got it!

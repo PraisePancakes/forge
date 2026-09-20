@@ -1,7 +1,6 @@
 #include <forge/forge.hpp>
 
 int main() {
-#if 1
     // define your registry with a list of components
     forge::registry<int, char, float, std::string, long> world;
 
@@ -89,8 +88,7 @@ int main() {
     };
 
     mutable_view.each([&world](const forge::entity e, auto& i, auto& s) {
-        std::cout << e << " Int component: " << i << " String component: " << world.get_component<std::string>(e) << std::endl;
+        std::cout << e << " Int component: " << i << " String component: " << s << std::endl;
     });
-#endif
     return 0;
 }
