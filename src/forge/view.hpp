@@ -5,9 +5,10 @@
 
 #include "storage.hpp"
 namespace forge {
+
 namespace _INTERNAL::ALGORITHMS {
 template <typename PoolType>
-static std::size_t get_driving_index(PoolType p) {
+std::size_t get_driving_index(PoolType p) {
     std::size_t idx = 0;
     std::apply([&idx](auto&&... args) {
         std::size_t curr_idx = 0;
@@ -26,7 +27,7 @@ static std::size_t get_driving_index(PoolType p) {
 };
 
 template <typename E, typename PoolType>
-static bool contains_in_every(const E e, const PoolType p) {
+bool contains_in_every(const E e, const PoolType p) {
     return std::apply([&e](auto&&... args) {
         return (args.contains(e) && ...);
     },
@@ -34,7 +35,7 @@ static bool contains_in_every(const E e, const PoolType p) {
 };
 
 template <std::size_t I, typename E, typename... Ts, typename PoolType>
-static decltype(auto) pool_of(const E e, PoolType pool) {
+decltype(auto) pool_of(const E e, PoolType pool) {
     auto& storage = std::get<I>(pool);
     using query_type = std::tuple_element_t<I, std::tuple<Ts...>>;
     if constexpr (std::is_const_v<std::remove_reference_t<query_type>>) {
@@ -73,9 +74,10 @@ class basic_view_iterator {
         this->ptr++;
         return *this;
     }
-    basic_view_iterator& operator++(int) {
-        ++this->ptr;
-        return *this;
+    basic_view_iterator operator++(int) {
+        auto old = *this;
+        ++(*this);
+        return old;
     }
 
     reference operator*() const { return *ptr; }
@@ -105,13 +107,15 @@ class view_iterator {
         return *this;
     }
     view_iterator& operator++(int) {
-        ++this->iter;
+        this->iter++;
         while (!_INTERNAL::ALGORITHMS::contains_in_every(*iter, this->pool)) {
-            ++this->iter;
+            this->iter++;
         }
         return *this;
     }
-
+    value_type get_value() const {
+        return *this->iter;
+    }
     decltype(auto) operator*() {
         return [this]<std::size_t... Is>(std::index_sequence<Is...>) {
             return std::forward_as_tuple(_INTERNAL::ALGORITHMS::pool_of<Is, Ty, Ts...>(*this->iter, this->pool)...);
@@ -132,8 +136,6 @@ class basic_view_container {
     using value_type = Ty;
     using pool_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<Ts>, Ty>&...>;
     using iterator = view_iterator<basic_view_iterator<Ty>, pool_type, Ty, Ts...>;
-
-   private:
     pool_type pool;
     std::size_t driving_index;
 
@@ -159,7 +161,19 @@ template <typename Ty, typename... Ts>
 class view_span : private basic_view_container<Ty, Ts...> {
     using container_traits = basic_view_container<Ty, Ts...>;
     using pool_type = container_traits::pool_type;
-    using iterator = container_traits::iterator;
+    using iterator = view_iterator<basic_view_iterator<Ty>, pool_type, Ty, Ts...>;
+
+    template <typename Func, std::size_t... Is>
+    void propagate_cv_callback(
+        const Ty e,
+        Func& callback,
+        const std::index_sequence<Is...>) {
+        if constexpr (std::is_invocable_v<Func, Ty, decltype(_INTERNAL::ALGORITHMS::pool_of<Is, Ty, Ts...>(e, this->pool))...>) {
+            callback(e, _INTERNAL::ALGORITHMS::pool_of<Is, Ty, Ts...>(e, this->pool)...);
+        } else if constexpr (std::is_invocable_v<Func, decltype(_INTERNAL::ALGORITHMS::pool_of<Is, Ty, Ts...>(e, this->pool))...>) {
+            callback(_INTERNAL::ALGORITHMS::pool_of<Is, Ty, Ts...>(e, this->pool)...);
+        }
+    }
 
    public:
     view_span(pool_type pool) : basic_view_container<Ty, Ts...>{pool} {};
@@ -168,11 +182,22 @@ class view_span : private basic_view_container<Ty, Ts...> {
         return *this;
     };
 
+    iterator begin() {
+        return iterator{this->driving_index, 0, this->pool};
+    };
+
+    iterator end() {
+        std::size_t end_index = 0;
+        meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->pool, [&end_index](auto&& arg) {
+            end_index = arg.size();
+        });
+        return iterator{this->driving_index, end_index, this->pool};
+    };
 
     template <typename Func>
     void each(Func&& f) {
-        for (const auto it = container_traits::begin(); it != container_traits::end(); it++) {
-            std::forward<Func>(f)(*it);
+        for (auto it = container_traits::begin(); it != container_traits::end(); it++) {
+            this->propagate_cv_callback(it.get_value(), f, std::make_index_sequence<sizeof...(Ts)>{});
         }
     };
 };
