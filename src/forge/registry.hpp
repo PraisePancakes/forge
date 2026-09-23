@@ -42,9 +42,6 @@ class registry {
     [[nodiscard]] decltype(auto) view() noexcept {
         static_assert((meta::contains_it<std::remove_cvref_t<Ts>, ComponentRegistry...> && ...), "Error: Provided view type(s) is not a subset of the world's component registry!");
         return view_span<entity, Ts...>(std::forward_as_tuple(std::get<index_of_type<std::remove_cvref_t<Ts>>>(storage_map)...));
-        // return view_span<entity, Ts...>(
-        //     std::forward_as_tuple(
-        //         std::get<index_of_type<std::remove_cvref_t<Ts>>>(storage_map)...));
     }
     /**
      * @brief creates a new entity identifier unless an identifier can be recycled then we use the next version of the recycled identifier.
@@ -61,7 +58,8 @@ class registry {
     };
 
     [[nodiscard]] bool is_alive(const entity e) const noexcept {
-        return version_history[to_id(e)] == to_version(e);
+        return to_id(e) < version_history.size() &&
+               version_history[to_id(e)] == to_version(e);
     }
 
     template <typename C>
@@ -85,6 +83,19 @@ class registry {
     [[nodiscard]] bool has_component(const entity e) const noexcept {
         return has_component<std::logical_and, Cs...>(e);
     }
+
+    template <typename T>
+    void remove_component(const entity e) noexcept {
+        using C = std::remove_cvref_t<T>;
+        auto& storage = std::get<meta::index_of<C, ComponentRegistry...>::value>(storage_map);
+        storage.remove(e);
+    };
+
+    template <typename... Ts>
+        requires(sizeof...(Ts) > 1)
+    void remove_component(const entity e) noexcept {
+        (remove_component<Ts>(e), ...);
+    };
 
     // destroy the entity and remove all its components from the sparse set storage
     void destroy(const entity e) {

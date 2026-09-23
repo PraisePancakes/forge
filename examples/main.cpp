@@ -1,6 +1,15 @@
 #include <forge/forge.hpp>
 
 int main() {
+    forge::registry<int> world;
+    auto e = world.make();
+    world.destroy(e);
+    auto e2 = world.make();
+    std::cout << std::boolalpha << world.is_alive(e) << std::endl;
+    std::cout << std::boolalpha << world.is_alive(e2) << std::endl;
+    std::cout << e << " : " << e2 << std::endl;
+
+#if 0
     // define your registry with a list of components
     forge::registry<int, char, float, std::string, long> world;
 
@@ -37,6 +46,10 @@ int main() {
     std::cout << "=== Explicit has or ===" << std::endl;
     std::cout << std::boolalpha << world.has_component<std::logical_or, std::string, int>(e) << std::endl;   // true
     std::cout << std::boolalpha << world.has_component<std::logical_or, std::string, long>(e) << std::endl;  // false
+
+    std::cout << "=== Remove component int from entity 0 ===" << std::endl;
+    world.remove_component<int>(e);
+    std::cout << std::boolalpha << world.has_component<int>(e) << std::endl;  // false
 
     // destroy
     std::cout << "=== Before destroy===" << std::endl;
@@ -90,5 +103,6 @@ int main() {
     mutable_view.each([](const forge::entity e, auto& i, auto& s) {
         std::cout << e << " Int component: " << i << " String component: " << s << std::endl;
     });
+#endif
     return 0;
 }
