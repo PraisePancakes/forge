@@ -85,16 +85,18 @@ class registry {
     }
 
     template <typename T>
-    void remove_component(const entity e) noexcept {
+    bool remove_component(const entity e) noexcept {
         using C = std::remove_cvref_t<T>;
         auto& storage = std::get<meta::index_of<C, ComponentRegistry...>::value>(storage_map);
+        bool contained = storage.contains(e);
         storage.remove(e);
+        return contained;
     };
 
     template <typename... Ts>
         requires(sizeof...(Ts) > 1)
-    void remove_component(const entity e) noexcept {
-        (remove_component<Ts>(e), ...);
+    bool remove_component(const entity e) noexcept {
+        return (remove_component<Ts>(e) && ...);
     };
 
     // destroy the entity and remove all its components from the sparse set storage
@@ -128,6 +130,31 @@ class registry {
         return std::forward_as_tuple(add_component<Components>(e, std::forward<Args>(args))...);
     };
 
+    template <typename Component, typename... Args>
+    Component& replace_component(const entity e, Args&&... args) {
+        sparse_set_t<Component>& storage = std::get<meta::index_of<Component, ComponentRegistry...>::value>(storage_map);
+        storage.replace(e, std::forward<Args>(args)...);
+        return storage.get(e);
+    };
+
+    template <typename... Components, typename... Args>
+        requires(sizeof...(Components) == sizeof...(Args) && (sizeof...(Components) > 1))
+    decltype(auto) replace_component(const entity e, Args&&... args) {
+        return std::forward_as_tuple(replace_component<Components>(e, std::forward<Args>(args))...);
+    };
+
+    template <typename Component, typename... Args>
+    Component& add_or_replace_component(const entity e, Args&&... args) {
+        if (has_component<Component>(e)) return add_component<Component>(std::forward<Args>(args)...);
+        return replace_component<Component>(e, std::forward<Args>(args)...);
+    };
+
+    template <typename... Components, typename... Args>
+        requires(sizeof...(Components) == sizeof...(Args) && (sizeof...(Components) > 1))
+    decltype(auto) add_or_replace_component(const entity e, Args&&... args) {
+        return std::forward_as_tuple(add_or_replace_component<Components>(e, std::forward<Args>(args))...);
+    };
+
     /**
      * @brief gets component of given type, component must be registered to the ComponentRegistry
      *
@@ -159,6 +186,11 @@ class registry {
     [[nodiscard]] decltype(auto) get_component(this auto& self, const entity e) noexcept {
         return std::forward_as_tuple(self.template get_component<Components>(e)...);
     }
+    template <typename Component>
+    [[nodiscard]] Component* try_get(const entity e) noexcept {
+        if (has_component<Component>(e)) return &get_component<Component>(e);
+        return nullptr;
+    };
 };
 /**
  * @brief registry specialization on a tuple-like component registry

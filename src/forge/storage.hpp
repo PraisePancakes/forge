@@ -1,4 +1,8 @@
 #pragma once
+#include <cstddef>
+#include <limits>
+#include <type_traits>
+#include <utility>
 #include <vector>
 namespace forge::storage {
 template <typename CTy, typename KeyType>
@@ -26,6 +30,19 @@ class sparse_set {
         dense_mirror.push_back(e);
         dense.emplace_back(std::forward<Args>(args)...);
     };
+
+    template <typename... Args>
+    void replace(KeyType e, Args&&... args) {
+        FORGE_ASSERT(contains(e), "Cannot replace component that does not exist");
+        const auto index = sparse[to_id(e)];
+        dense[index] = CTy(std::forward<Args>(args)...);
+    };
+
+    void reserve(const std::size_t n) {
+        dense.reserve(n);
+        dense_mirror.reserve(n);
+    };
+
     // swap and pop
     void remove(KeyType e) {
         if (!contains(e)) return;

@@ -4,10 +4,8 @@ int main() {
     forge::registry<int> world;
     auto e = world.make();
     world.destroy(e);
-    auto e2 = world.make();
-    std::cout << std::boolalpha << world.is_alive(e) << std::endl;
-    std::cout << std::boolalpha << world.is_alive(e2) << std::endl;
-    std::cout << e << " : " << e2 << std::endl;
+
+    
 
 #if 0
     // define your registry with a list of components
