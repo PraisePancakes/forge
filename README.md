@@ -21,6 +21,7 @@ If you’re interested in learning more, be sure to check out `EnTT` [here](http
 #include <forge/forge.hpp>
 
 int main() {
+#if 1
     // define your registry with a list of components
     forge::registry<int, char, float, std::string, long> world;
 
@@ -57,6 +58,10 @@ int main() {
     std::cout << "=== Explicit has or ===" << std::endl;
     std::cout << std::boolalpha << world.has_component<std::logical_or, std::string, int>(e) << std::endl;   // true
     std::cout << std::boolalpha << world.has_component<std::logical_or, std::string, long>(e) << std::endl;  // false
+
+    std::cout << "=== Remove component int from entity 0 ===" << std::endl;
+    world.remove_component<int>(e);
+    std::cout << std::boolalpha << world.has_component<int>(e) << std::endl;  // false
 
     // destroy
     std::cout << "=== Before destroy===" << std::endl;
@@ -110,8 +115,39 @@ int main() {
     mutable_view.each([](const forge::entity e, auto& i, auto& s) {
         std::cout << e << " Int component: " << i << " String component: " << s << std::endl;
     });
+
+    std::cout << "=== View with exclusion ===" << std::endl;
+
+    // Entity with int + char
+    auto e1 = world.make();
+    world.add_component<int, char>(e1, 100, 'A');
+
+    // Entity with int + char + string
+    auto e2 = world.make();
+    world.add_component<int, char, std::string>(e2, 200, 'B', "excluded");
+
+    // Entity with int + char
+    auto e3 = world.make();
+    world.add_component<int, char>(e3, 300, 'C');
+
+    // Entity with int + char + string
+    auto e4 = world.make();
+    world.add_component<int, char, std::string>(e4, 400, 'D', "excluded");
+
+    // Only entities with int + char AND WITHOUT string
+    auto ex_view = world.view<int, char>().exclude<std::string>();
+
+    for (const auto e : ex_view) {
+        auto [i, c] = world.get_component<int, char>(e);
+        std::cout << e
+                  << " -> int: " << i
+                  << ", char: " << c
+                  << std::endl;
+    }
+#endif
     return 0;
 }
+
 
 ```
 **OUTPUT:**
@@ -126,6 +162,8 @@ true
 false
 === Explicit has or ===
 true
+false
+=== Remove component int from entity 0 ===
 false
 === Before destroy===
 Entity { ID : 0, VERSION : 0}
@@ -168,6 +206,14 @@ Entity { ID : 2, VERSION : 0} Int component: 4 String component: even
 Entity { ID : 4, VERSION : 0} Int component: 4 String component: even
 Entity { ID : 6, VERSION : 0} Int component: 4 String component: even
 Entity { ID : 8, VERSION : 0} Int component: 4 String component: even
+=== View with exclusion ===
+Entity { ID : 1, VERSION : 0} -> int: 1, char: O
+Entity { ID : 3, VERSION : 0} -> int: 3, char: O
+Entity { ID : 5, VERSION : 0} -> int: 5, char: O
+Entity { ID : 7, VERSION : 0} -> int: 7, char: O
+Entity { ID : 9, VERSION : 0} -> int: 9, char: O
+Entity { ID : 10, VERSION : 0} -> int: 100, char: A
+Entity { ID : 12, VERSION : 0} -> int: 300, char: C
 ```
 # Usage
 `Forge` is a header-only library, simply `#include <forge/forge.hpp` at the top of your file and you got it!
