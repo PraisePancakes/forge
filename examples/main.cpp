@@ -95,6 +95,35 @@ int main() {
     mutable_view.each([](const forge::entity e, auto& i, auto& s) {
         std::cout << e << " Int component: " << i << " String component: " << s << std::endl;
     });
+
+    std::cout << "=== View with exclusion ===" << std::endl;
+
+    // Entity with int + char
+    auto e1 = world.make();
+    world.add_component<int, char>(e1, 100, 'A');
+
+    // Entity with int + char + string
+    auto e2 = world.make();
+    world.add_component<int, char, std::string>(e2, 200, 'B', "excluded");
+
+    // Entity with int + char
+    auto e3 = world.make();
+    world.add_component<int, char>(e3, 300, 'C');
+
+    // Entity with int + char + string
+    auto e4 = world.make();
+    world.add_component<int, char, std::string>(e4, 400, 'D', "excluded");
+
+    // Only entities with int + char AND WITHOUT string
+    auto ex_view = world.view<int, char>().exclude<std::string>();
+
+    for (const auto e : ex_view) {
+        auto [i, c] = world.get_component<int, char>(e);
+        std::cout << e
+                  << " -> int: " << i
+                  << ", char: " << c
+                  << std::endl;
+    }
 #endif
     return 0;
 }

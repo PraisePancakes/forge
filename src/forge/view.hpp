@@ -173,13 +173,13 @@ class basic_view_container<Entity, UniversalPool, std::tuple<Includes...>, std::
 };
 
 template <typename E, typename UniversalPool, typename Include, typename Exclude>
-class view_span;
+class view_fwd;
 
-template <typename E, typename UniversalPool, typename... Includes>
-class view_span<E, UniversalPool, std::tuple<Includes...>, std::tuple<>>
-    : private basic_view_container<E, UniversalPool, std::tuple<Includes...>, std::tuple<>> {
-    using underlying_container = basic_view_container<E, UniversalPool, std::tuple<Includes...>, std::tuple<>>;
-    using iterator = view_iterator<_INTERNAL::TAGS::deref_row_wise_tag, basic_view_iterator<E>, std::tuple<Includes...>, std::tuple<>>;
+template <typename E, typename UniversalPool, typename... Includes, typename... Excludes>
+class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...>>
+    : private basic_view_container<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...>> {
+    using underlying_container = basic_view_container<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...>>;
+    using iterator = view_iterator<_INTERNAL::TAGS::deref_row_wise_tag, basic_view_iterator<E>, std::tuple<Includes...>, std::tuple<Excludes...>>;
 
     template <typename Func, std::size_t... Is>
     void propagate_cv_callback(const E e, Func& callback, const std::index_sequence<Is...>) {
@@ -191,10 +191,11 @@ class view_span<E, UniversalPool, std::tuple<Includes...>, std::tuple<>>
     }
 
    public:
-    view_span(UniversalPool& pool) : underlying_container{pool} {};
     underlying_container& each() {
         return *this;
     };
+
+    view_fwd(UniversalPool& pool) : underlying_container{pool} {};
 
     const iterator begin() const {
         if (containers::contains_empty(this->inclusions)) return end();
@@ -227,6 +228,24 @@ class view_span<E, UniversalPool, std::tuple<Includes...>, std::tuple<>>
         for (auto it = underlying_container::begin(); it != underlying_container::end(); it++) {
             this->propagate_cv_callback(it.get_value(), f, std::make_index_sequence<sizeof...(Includes)>{});
         }
+    };
+};
+
+template <typename E, typename UniversalPool, typename Include, typename Exclude>
+class view_span;
+
+template <typename E, typename UniversalPool, typename... Includes>
+class view_span<E, UniversalPool, std::tuple<Includes...>, std::tuple<>>
+    : public view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<>> {
+    using underlying_container = view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<>>;
+    UniversalPool& pool_ref;
+
+   public:
+    view_span(UniversalPool& pool) : underlying_container{pool}, pool_ref{pool} {};
+
+    template <typename... Excludes>
+    auto exclude() {
+        return view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...>>(this->pool_ref);
     };
 };
 
