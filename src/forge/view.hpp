@@ -182,7 +182,7 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
     using iterator = view_iterator<_INTERNAL::TAGS::deref_row_wise_tag, basic_view_iterator<E>, std::tuple<Includes...>, std::tuple<Excludes...>>;
 
     template <typename Func, std::size_t... Is>
-    void propagate_cv_callback(const E e, Func& callback, const std::index_sequence<Is...>) {
+    void propogate_const_callback(const E e, Func& callback, const std::index_sequence<Is...>) {
         if constexpr (std::is_invocable_v<Func, E, decltype(containers::pool_of<Is, E, Includes...>(e, this->inclusions))...>) {
             callback(e, containers::pool_of<Is, E, Includes...>(e, this->inclusions)...);
         } else if constexpr (std::is_invocable_v<Func, decltype(containers::pool_of<Is, E, Includes...>(e, this->inclusions))...>) {
@@ -226,7 +226,7 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
     template <typename Func>
     void each(Func&& f) {
         for (auto it = underlying_container::begin(); it != underlying_container::end(); it++) {
-            this->propagate_cv_callback(it.get_value(), f, std::make_index_sequence<sizeof...(Includes)>{});
+            this->propogate_const_callback(it.get_value(), f, std::make_index_sequence<sizeof...(Includes)>{});
         }
     };
 };
