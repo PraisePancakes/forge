@@ -52,6 +52,13 @@ bool contains_in_none(const E e, PoolType&& p) {
                       std::forward<PoolType>(p));
 }
 
+template <typename PoolType>
+bool contains_empty(PoolType pool) {
+    return std::apply([](auto&&... pools) {
+        return ((pools.size() == 0) || ...);
+    },
+                      pool);
+}
 template <std::size_t I, typename E, typename... Ts, typename PoolType>
 decltype(auto) pool_of(const E e, PoolType&& pool) {
     auto& storage = std::get<I>(std::forward<PoolType>(pool));

@@ -13,6 +13,7 @@ add_executable(forge_tests
     test_components.cpp
     test_meta.cpp
     test_algorithms.cpp
+    test_view.cpp
     main.cpp
 )
 
@@ -21,7 +22,14 @@ target_link_libraries(forge_tests
         forge
         doctest::doctest
 )
+target_compile_options(forge_tests PRIVATE
+    -fsanitize=address
+    -fno-omit-frame-pointer
+)
 
+target_link_options(forge_tests PRIVATE
+    -fsanitize=address
+)
 include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
 
 doctest_discover_tests(forge_tests)
