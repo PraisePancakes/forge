@@ -27,7 +27,7 @@ class registry {
 
     template <typename... Ts>
     using storage_pool_type = std::tuple<sparse_set_t<type_of_t<index_of_type<Ts>>>...>;
-    std::tuple<sparse_set_t<ComponentRegistry>...> storage_map;
+    storage_pool_type<ComponentRegistry...> storage_map;
 
     entity::id_type current_entity_id{0};
     entity::value_type generate_next() noexcept {
@@ -46,7 +46,7 @@ class registry {
         requires(sizeof...(Ts) <= sizeof...(ComponentRegistry))
     [[nodiscard]] decltype(auto) view() noexcept {
         static_assert((meta::contains_it<std::remove_cvref_t<Ts>, ComponentRegistry...> && ...), "Error: Provided view type(s) is not a subset of the world's component registry!");
-        // return view_span<entity, Ts...>(std::forward_as_tuple(std::get<index_of_type<std::remove_cvref_t<Ts>>>(storage_map)...));
+        return view_span<entity, storage_pool_type<ComponentRegistry...>, std::tuple<Ts...>, std::tuple<>>(this->storage_map);
     }
     /**
      * @brief creates a new entity identifier unless an identifier can be recycled then we use the next version of the recycled identifier.

@@ -62,8 +62,11 @@ class view_iterator<DerefTag, BaseIterator, std::tuple<InclusionPools...>, std::
     using iterator_traits = std::iterator_traits<BaseIterator>;
     using value_type = iterator_traits::value_type;
     using iterator = BaseIterator;
-    using inclusion_type = std::tuple<forge::storage::sparse_set<InclusionPools, value_type>&...>;
-    using exclusion_type = std::tuple<forge::storage::sparse_set<ExclusionPools, value_type>&...>;
+    using entity_type = std::remove_cvref_t<value_type>;
+
+    using inclusion_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<InclusionPools>, entity_type>&...>;
+
+    using exclusion_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<ExclusionPools>, entity_type>&...>;
     iterator iter{nullptr};
     iterator end_iter{nullptr};
     inclusion_type inclusions;
@@ -123,9 +126,10 @@ class basic_view_container<Entity, UniversalPool, std::tuple<Includes...>, std::
     using value_type = Entity;
     using iterator = view_iterator<_INTERNAL::TAGS::deref_column_wise_tag, basic_view_iterator<Entity>, std::tuple<Includes...>, std::tuple<Excludes...>>;
 
-    using inclusion_type = std::tuple<forge::storage::sparse_set<Includes, Entity>&...>;
-    using exclusion_type = std::tuple<forge::storage::sparse_set<Excludes, Entity>&...>;
+    using inclusion_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<Includes>, Entity>&...>;
+    using exclusion_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<Excludes>, Entity>&...>;
 
+   protected:
     inclusion_type inclusions;
     exclusion_type exclusions;
     std::size_t driving_index;
@@ -168,6 +172,62 @@ class basic_view_container<Entity, UniversalPool, std::tuple<Includes...>, std::
     };
 };
 
+template <typename E, typename UniversalPool, typename Include, typename Exclude>
+class view_span;
 
+template <typename E, typename UniversalPool, typename... Includes>
+class view_span<E, UniversalPool, std::tuple<Includes...>, std::tuple<>>
+    : private basic_view_container<E, UniversalPool, std::tuple<Includes...>, std::tuple<>> {
+    using underlying_container = basic_view_container<E, UniversalPool, std::tuple<Includes...>, std::tuple<>>;
+    using iterator = view_iterator<_INTERNAL::TAGS::deref_row_wise_tag, basic_view_iterator<E>, std::tuple<Includes...>, std::tuple<>>;
+
+    template <typename Func, std::size_t... Is>
+    void propagate_cv_callback(const E e, Func& callback, const std::index_sequence<Is...>) {
+        if constexpr (std::is_invocable_v<Func, E, decltype(containers::pool_of<Is, E, Includes...>(e, this->inclusions))...>) {
+            callback(e, containers::pool_of<Is, E, Includes...>(e, this->inclusions)...);
+        } else if constexpr (std::is_invocable_v<Func, decltype(containers::pool_of<Is, E, Includes...>(e, this->inclusions))...>) {
+            callback(containers::pool_of<Is, E, Includes...>(e, this->inclusions)...);
+        }
+    }
+
+   public:
+    view_span(UniversalPool& pool) : underlying_container{pool} {};
+    underlying_container& each() {
+        return *this;
+    };
+
+    const iterator begin() const {
+        if (containers::contains_empty(this->inclusions)) return end();
+        return iterator{this->driving_index, 0, this->inclusions, this->exclusions};
+    };
+
+    const iterator end() const {
+        std::size_t end_index = 0;
+        meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->inclusions, [&end_index](auto&& arg) {
+            end_index = arg.size();
+        });
+        return iterator{this->driving_index, end_index, this->inclusions, this->exclusions};
+    };
+
+    iterator begin() {
+        if (containers::contains_empty(this->inclusions)) return end();
+        return iterator{this->driving_index, 0, this->inclusions, this->exclusions};
+    };
+
+    iterator end() {
+        std::size_t end_index = 0;
+        meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->inclusions, [&end_index](auto&& arg) {
+            end_index = arg.size();
+        });
+        return iterator{this->driving_index, end_index, this->inclusions, this->exclusions};
+    };
+
+    template <typename Func>
+    void each(Func&& f) {
+        for (auto it = underlying_container::begin(); it != underlying_container::end(); it++) {
+            this->propagate_cv_callback(it.get_value(), f, std::make_index_sequence<sizeof...(Includes)>{});
+        }
+    };
+};
 
 };  // namespace forge

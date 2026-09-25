@@ -33,7 +33,7 @@ template <typename PoolType, typename... Ts>
 decltype(auto) subset_of(PoolType& pool) {
     using Pool = std::remove_cvref_t<PoolType>;
     return std::forward_as_tuple(
-        std::get<meta::index_of_value_type<Ts, Pool>::value>(pool)...);
+        std::get<meta::index_of_value_type<std::remove_cvref_t<Ts>, Pool>::value>(pool)...);
 }
 
 template <typename E, typename PoolType>

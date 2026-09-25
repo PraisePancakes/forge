@@ -1,7 +1,7 @@
 #include <forge/forge.hpp>
 
 int main() {
-#if 0
+#if 1
     // define your registry with a list of components
     forge::registry<int, char, float, std::string, long> world;
 

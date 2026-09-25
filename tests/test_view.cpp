@@ -340,4 +340,155 @@ TEST_SUITE("view") {
         CHECK(values[0] == 10);
         CHECK(values[1] == 30);
     }
+
+    TEST_CASE("world view only returns entities containing every component") {
+        forge::registry<int, char, float> world;
+
+        auto e0 = world.make();
+        auto e1 = world.make();
+        auto e2 = world.make();
+        auto e3 = world.make();
+
+        // e0: int + char
+        world.add_component<int>(e0, 10);
+        world.add_component<char>(e0, 'a');
+
+        // e1: int only
+        world.add_component<int>(e1, 20);
+
+        // e2: char only
+        world.add_component<char>(e2, 'b');
+
+        // e3: int + char
+        world.add_component<int>(e3, 30);
+        world.add_component<char>(e3, 'c');
+
+        auto view = world.view<int, char>();
+
+        std::vector<forge::entity> entities;
+
+        for (auto e : view) {
+            entities.push_back(e);
+        }
+
+        CHECK(entities.size() == 2);
+        CHECK(entities[0] == e0);
+        CHECK(entities[1] == e3);
+    }
+
+    TEST_CASE("world view uses smallest component pool as driving pool") {
+        forge::registry<int, char, float> world;
+
+        auto e0 = world.make();
+        auto e1 = world.make();
+        auto e2 = world.make();
+
+        // int: 3 entities
+        world.add_component<int>(e0, 10);
+        world.add_component<int>(e1, 20);
+        world.add_component<int>(e2, 30);
+
+        // char: 2 entities
+        world.add_component<char>(e0, 'a');
+        world.add_component<char>(e1, 'b');
+
+        auto view = world.view<int, char>();
+
+        std::vector<forge::entity> entities;
+
+        for (auto e : view) {
+            entities.push_back(e);
+        }
+
+        CHECK(entities.size() == 2);
+        CHECK(entities[0] == e0);
+        CHECK(entities[1] == e1);
+    }
+
+    TEST_CASE("world view is empty when an included pool is empty") {
+        forge::registry<int, char, float> world;
+
+        auto e0 = world.make();
+        auto e1 = world.make();
+
+        world.add_component<int>(e0, 10);
+        world.add_component<int>(e1, 20);
+
+        world.add_component<char>(e0, 'a');
+        world.add_component<char>(e1, 'b');
+
+        // float is completely empty.
+        auto view = world.view<int, char, float>();
+
+        CHECK(view.begin() == view.end());
+
+        std::size_t count = 0;
+
+        for (auto e : view) {
+            (void)e;
+            ++count;
+        }
+
+        CHECK(count == 0);
+    }
+
+    TEST_CASE("world view finds single matching entity") {
+        forge::registry<int, char, float> world;
+
+        auto e0 = world.make();
+        auto e1 = world.make();
+        auto e2 = world.make();
+
+        world.add_component<int>(e0, 10);
+        world.add_component<int>(e1, 20);
+        world.add_component<int>(e2, 30);
+
+        world.add_component<char>(e1, 'x');
+
+        auto view = world.view<int, char>();
+
+        auto it = view.begin();
+
+        REQUIRE(it != view.end());
+        CHECK(*it == e1);
+
+        ++it;
+
+        CHECK(it == view.end());
+    }
+
+    TEST_CASE("world view dereferences to entity") {
+        forge::registry<int, char> world;
+
+        auto e0 = world.make();
+
+        world.add_component<int>(e0, 42);
+        world.add_component<char>(e0, 'x');
+
+        auto view = world.view<int, char>();
+
+        auto it = view.begin();
+
+        REQUIRE(it != view.end());
+
+        auto e = *it;
+
+        CHECK(e == e0);
+    }
+
+    TEST_CASE("world view each provides component references") {
+        forge::registry<int, char> world;
+
+        auto e0 = world.make();
+
+        world.add_component<int>(e0, 42);
+        world.add_component<char>(e0, 'x');
+
+        auto view = world.view<int, char>();
+
+        view.each([](int& i, char& c) {
+            CHECK(i == 42);
+            CHECK(c == 'x');
+        });
+    }
 }

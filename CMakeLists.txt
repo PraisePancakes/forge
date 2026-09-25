@@ -37,7 +37,7 @@ target_compile_options(${PROJECT_NAME}
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra>
 )
 
-option(FORGE_BUILD_EXAMPLES "Build Forge examples" OFF)
+option(FORGE_BUILD_EXAMPLES "Build Forge examples" ON)
 option(FORGE_BUILD_TESTS "Build Forge tests" ON)
 
 if(FORGE_BUILD_EXAMPLES)
