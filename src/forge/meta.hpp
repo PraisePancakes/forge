@@ -8,15 +8,27 @@ constexpr static bool contains_it = (std::is_same_v<T, Ts> || ...);
 template <std::size_t I>
 using value = std::integral_constant<std::size_t, I>;
 
+template <typename T, typename Tup>
+struct index_of;
+
 template <typename T, typename... Ts>
     requires(contains_it<T, Ts...>)
-struct index_of {
+struct index_of<T, std::tuple<Ts...>> {
     static constexpr std::size_t value =
         []<std::size_t... Is>(std::index_sequence<Is...>) {
             std::size_t result{};
             ((std::is_same_v<T, Ts> ? result = Is : result), ...);
             return result;
         }(std::make_index_sequence<sizeof...(Ts)>{});
+};
+
+template <typename T, typename Tup>
+struct index_of_value_type;
+
+template <typename T, typename... Ts>
+    requires(contains_it<T, typename Ts::value_type...>)
+struct index_of_value_type<T, std::tuple<Ts...>> {
+    static constexpr std::size_t value = index_of<T, std::tuple<typename Ts::value_type...>>::value;
 };
 
 template <std::size_t Index, typename... Ts>

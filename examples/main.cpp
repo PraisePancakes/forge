@@ -1,12 +1,6 @@
 #include <forge/forge.hpp>
 
 int main() {
-    forge::registry<int> world;
-    auto e = world.make();
-    world.destroy(e);
-
-    
-
 #if 0
     // define your registry with a list of components
     forge::registry<int, char, float, std::string, long> world;

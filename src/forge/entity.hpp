@@ -41,11 +41,6 @@ struct base_entity {
     using version_type = typename traits::version_type;
 
    public:
-    static value_type generate_next() noexcept {
-        static id_type serial{0};
-        return static_cast<value_type>(serial++) << std::numeric_limits<version_type>::digits;
-    };
-
     [[nodiscard]] static constexpr id_type to_id(value_type value) noexcept {
         return static_cast<id_type>(value >> std::numeric_limits<version_type>::digits);
     };
@@ -82,8 +77,8 @@ struct entity_fwd : _INTERNAL::base_entity<EntityType> {
     operator typename base_type::value_type() const {
         return this->value;
     };
-    entity_fwd() : value{base_type::generate_next()} {};
-
+    explicit constexpr entity_fwd()
+        : value{0} {}
     explicit constexpr entity_fwd(typename base_type::value_type value)
         : value{value} {}
 

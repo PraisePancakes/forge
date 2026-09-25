@@ -38,7 +38,14 @@ target_compile_options(${PROJECT_NAME}
 )
 
 option(FORGE_BUILD_EXAMPLES "Build Forge examples" OFF)
+option(FORGE_BUILD_TESTS "Build Forge tests" ON)
+
 if(FORGE_BUILD_EXAMPLES)
     add_executable(forge_example examples/main.cpp)
     target_link_libraries(forge_example PRIVATE forge)
+endif()
+
+if(FORGE_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
 endif()

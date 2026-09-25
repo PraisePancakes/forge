@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "entity.hpp"
+#include "generation.hpp"
 #include "meta.hpp"
 #include "storage.hpp"
 #include "view.hpp"
@@ -17,11 +18,9 @@ template <typename... ComponentRegistry>
 class registry {
     template <typename T>
     using sparse_set_t = storage::sparse_set<T, entity>;
-    std::stack<entity> entity_store;
-    std::vector<entity::version_type> version_history;
 
     template <typename T>
-    static constexpr std::size_t index_of_type = meta::index_of<std::remove_cvref_t<T>, ComponentRegistry...>::value;
+    static constexpr std::size_t index_of_type = meta::index_of<std::remove_cvref_t<T>, std::tuple<ComponentRegistry...>>::value;
 
     template <std::size_t Index>
     using type_of_t = meta::type_of_t<Index, ComponentRegistry...>;
@@ -29,6 +28,12 @@ class registry {
     template <typename... Ts>
     using storage_pool_type = std::tuple<sparse_set_t<type_of_t<index_of_type<Ts>>>...>;
     std::tuple<sparse_set_t<ComponentRegistry>...> storage_map;
+
+    entity::id_type current_entity_id{0};
+    entity::value_type generate_next() noexcept {
+        return static_cast<entity::value_type>(current_entity_id++) << std::numeric_limits<entity::version_type>::digits;
+    };
+    forge::generation::generator<entity> gen;
 
    public:
     registry() = default;
@@ -41,31 +46,25 @@ class registry {
         requires(sizeof...(Ts) <= sizeof...(ComponentRegistry))
     [[nodiscard]] decltype(auto) view() noexcept {
         static_assert((meta::contains_it<std::remove_cvref_t<Ts>, ComponentRegistry...> && ...), "Error: Provided view type(s) is not a subset of the world's component registry!");
-        return view_span<entity, Ts...>(std::forward_as_tuple(std::get<index_of_type<std::remove_cvref_t<Ts>>>(storage_map)...));
+        // return view_span<entity, Ts...>(std::forward_as_tuple(std::get<index_of_type<std::remove_cvref_t<Ts>>>(storage_map)...));
     }
     /**
      * @brief creates a new entity identifier unless an identifier can be recycled then we use the next version of the recycled identifier.
      */
     entity make() {
-        if (!entity_store.empty()) {
-            auto e = entity_store.top();
-            entity_store.pop();
-            return next(e);
-        }
-        entity e{};
-        version_history.push_back(to_version(e));
-        return e;
+        return gen.make();
     };
 
     [[nodiscard]] bool is_alive(const entity e) const noexcept {
-        return to_id(e) < version_history.size() &&
-               version_history[to_id(e)] == to_version(e);
+        return gen.is_valid(e);
     }
 
     template <typename C>
     [[nodiscard]] bool has_component(const entity e) const noexcept {
+        if (!is_alive(e))
+            return false;
         using stripped_type = std::remove_cvref_t<C>;
-        const sparse_set_t<stripped_type>& storage = std::get<meta::index_of<stripped_type, ComponentRegistry...>::value>(storage_map);
+        const sparse_set_t<stripped_type>& storage = std::get<meta::index_of<stripped_type, std::tuple<ComponentRegistry...>>::value>(storage_map);
         return storage.contains(e);
     };
 
@@ -87,7 +86,7 @@ class registry {
     template <typename T>
     bool remove_component(const entity e) noexcept {
         using C = std::remove_cvref_t<T>;
-        auto& storage = std::get<meta::index_of<C, ComponentRegistry...>::value>(storage_map);
+        auto& storage = std::get<meta::index_of<C, std::tuple<ComponentRegistry...>>::value>(storage_map);
         bool contained = storage.contains(e);
         storage.remove(e);
         return contained;
@@ -103,8 +102,7 @@ class registry {
     void destroy(const entity e) {
         if (!is_alive(e)) return;
         std::apply([&e](auto&&... sets) { (sets.remove(e), ...); }, this->storage_map);
-        version_history[to_id(e)] = to_version(next(e));
-        this->entity_store.push(e);
+        gen.destroy(e);
     };
 
     /**
@@ -119,7 +117,7 @@ class registry {
         requires((std::is_object_v<Component> || std::is_destructible_v<Component>) &&
                  meta::contains_it<Component, ComponentRegistry...>)
     Component& add_component(const entity e, Args&&... args) {
-        sparse_set_t<Component>& storage = std::get<meta::index_of<Component, ComponentRegistry...>::value>(storage_map);
+        sparse_set_t<Component>& storage = std::get<meta::index_of<Component, std::tuple<ComponentRegistry...>>::value>(storage_map);
         storage.emplace(e, std::forward<Args>(args)...);
         return storage.get(e);
     };
@@ -132,7 +130,7 @@ class registry {
 
     template <typename Component, typename... Args>
     Component& replace_component(const entity e, Args&&... args) {
-        sparse_set_t<Component>& storage = std::get<meta::index_of<Component, ComponentRegistry...>::value>(storage_map);
+        sparse_set_t<Component>& storage = std::get<meta::index_of<Component, std::tuple<ComponentRegistry...>>::value>(storage_map);
         storage.replace(e, std::forward<Args>(args)...);
         return storage.get(e);
     };
@@ -145,7 +143,7 @@ class registry {
 
     template <typename Component, typename... Args>
     Component& add_or_replace_component(const entity e, Args&&... args) {
-        if (has_component<Component>(e)) return add_component<Component>(std::forward<Args>(args)...);
+        if (!has_component<Component>(e)) return add_component<Component>(e, std::forward<Args>(args)...);
         return replace_component<Component>(e, std::forward<Args>(args)...);
     };
 
@@ -165,7 +163,7 @@ class registry {
      */
     template <typename Component>
     [[nodiscard]] decltype(auto) get_component(this auto& self, const entity e) noexcept {
-        constexpr static std::size_t component_index = meta::index_of<std::remove_cvref_t<Component>, ComponentRegistry...>::value;
+        constexpr static std::size_t component_index = meta::index_of<std::remove_cvref_t<Component>, std::tuple<ComponentRegistry...>>::value;
         auto& storage = std::get<component_index>(self.storage_map);
         FORGE_ASSERT(storage.contains(e), "[SPARSE GET ASSERTION FAILED] Entity " << e << " is not contained in the sparse storage of component index " << component_index);
         if constexpr (std::is_const_v<Component>)

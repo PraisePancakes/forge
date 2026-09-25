@@ -48,7 +48,7 @@ class sparse_set {
         if (!contains(e)) return;
         std::swap(dense[sparse[to_id(e)]], dense.back());
         std::swap(dense_mirror[sparse[to_id(e)]], dense_mirror.back());
-        sparse[dense_mirror[sparse[to_id(e)]]] = sparse[to_id(e)];
+        sparse[to_id(dense_mirror[sparse[to_id(e)]])] = sparse[to_id(e)];
         dense.pop_back();
         dense_mirror.pop_back();
         sparse[to_id(e)] = EMPTY;
