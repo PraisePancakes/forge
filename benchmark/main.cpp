@@ -169,15 +169,6 @@ void benchmark_emplace() {
 
 // ================================================================
 // Direct view iteration
-//
-// This is the important one for your view implementation.
-//
-// Forge:
-//     view.each([](Position&, Velocity&) {})
-//
-// EnTT:
-//     view.each([](Position&, Velocity&) {})
-//
 // ================================================================
 
 void benchmark_view_iteration() {
