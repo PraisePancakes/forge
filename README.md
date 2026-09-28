@@ -4,6 +4,7 @@ Forging a world one entity at a time. `Forge` is a header-only, lightweight and 
 * [Introduction](#introduction)
     * [Motivation](#motivation)
     * [Example](#example)
+* [Benchmarks](#benchmarks)
 * [Usage](#usage)
 * [Contributing](#contributions)
    
@@ -215,6 +216,53 @@ Entity { ID : 9, VERSION : 0} -> int: 9, char: O
 Entity { ID : 10, VERSION : 0} -> int: 100, char: A
 Entity { ID : 12, VERSION : 0} -> int: 300, char: C
 ```
+# Benchmarks
+For the sake of comparison, I wrote a very basic benchmark against EnTT. 
+**NOTE:** 
+ This benchmark is not stressful so results may vary with added stress. Feel free to add stress tests to the benchmark.
+
+`Benchmark Results`
+```
+============================================
+        Forge vs EnTT Benchmark
+============================================
+Entities: 1000000
+
+=== Entity Creation ===
+Forge                                         32.197 ms
+EnTT                                         160.382 ms
+
+=== Entity + Component Creation ===
+Forge                                        808.273 ms
+EnTT                                        2134.114 ms
+
+=== View Iteration ===
+Forge                                        180.751 ms
+EnTT                                         222.494 ms
+
+=== View Iteration + Entity ===
+Forge                                        171.800 ms
+EnTT                                         261.693 ms
+
+=== Const View Iteration ===
+Forge                                        172.137 ms
+EnTT                                         231.161 ms
+
+=== Component Lookup ===
+Forge                                         22.668 ms
+EnTT                                         173.564 ms
+
+=== Entity Destruction ===
+Forge                                        297.728 ms
+EnTT                                        1144.321 ms
+
+=== Entity Recycling ===
+Forge                                        332.913 ms
+EnTT                                        1841.774 ms
+
+Sink: 4999999000000
+```
+
 # Usage
 `Forge` is a header-only library, simply `#include <forge/forge.hpp` at the top of your file and you got it!
 ## Requirements
