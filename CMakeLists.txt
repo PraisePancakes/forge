@@ -39,6 +39,7 @@ target_compile_options(${PROJECT_NAME}
 
 option(FORGE_BUILD_EXAMPLES "Build Forge examples" ON)
 option(FORGE_BUILD_TESTS "Build Forge tests" ON)
+option(FORGE_BUILD_BENCHMARK "Build Forge benchmarks" ON)
 
 if(FORGE_BUILD_EXAMPLES)
     add_executable(forge_example examples/main.cpp)
@@ -48,4 +49,8 @@ endif()
 if(FORGE_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+if(FORGE_BUILD_BENCHMARK)
+    add_subdirectory(benchmark)
 endif()
