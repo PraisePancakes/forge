@@ -265,10 +265,21 @@ Sink: 4999999000000
 
 # Usage
 `Forge` is a header-only library, simply `#include <forge/forge.hpp` at the top of your file and you got it!
+
 ## Requirements
 `Forge` is built on a compiler that supports at least C++23.
 Recommended Compiler Specs. include `Clang 20.1.2 x86_64` and `GCC 14.2.0 x86_64`.
 This project requires `CMake` version 3.28 or later.
+# Building
+ You can use `Forge` from a CMake project by simpling linking an existing target to the `forge::forge` alias. The library can be fetched using `add_subdirectory()` or `FetchContent_Declare()`
+
+ **Building Tests/Examples/Benchmarks**
+ 
+ To build tests/examples/benchmarks navigate to the CMakeLists.txt file in the root directory of `Forge` and locate 
+ `option(FORGE_BUILD_EXAMPLES "Build Forge examples" OFF)`
+ `option(FORGE_BUILD_TESTS "Build Forge tests" OFF)`
+ `option(FORGE_BUILD_BENCHMARK "Build Forge benchmarks" OFF)`
+ you can then switch from `OFF` to `ON` which will build the options.
 # Contributions
 `Forge` is an open source library, contributions are not only welcomed but encouraged. Feel free to create an issue or submit a pull request from a new branch.
 I will gladly review it and give my feedback.

@@ -37,9 +37,9 @@ target_compile_options(${PROJECT_NAME}
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra>
 )
 
-option(FORGE_BUILD_EXAMPLES "Build Forge examples" ON)
-option(FORGE_BUILD_TESTS "Build Forge tests" ON)
-option(FORGE_BUILD_BENCHMARK "Build Forge benchmarks" ON)
+option(FORGE_BUILD_EXAMPLES "Build Forge examples" OFF)
+option(FORGE_BUILD_TESTS "Build Forge tests" OFF)
+option(FORGE_BUILD_BENCHMARK "Build Forge benchmarks" OFF)
 
 if(FORGE_BUILD_EXAMPLES)
     add_executable(forge_example examples/main.cpp)
