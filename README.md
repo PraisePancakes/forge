@@ -3,7 +3,13 @@ Forging a world one entity at a time. `Forge` is a header-only, lightweight and 
 
 * [Introduction](#introduction)
     * [Motivation](#motivation)
-    * [Example](#example)
+    * [Examples](#examples)
+        * [Hello&nbsp;World](#hello-world)
+        * [Entities](#entities-and-everything-in-between)
+        * [Components](#components)
+        * [Systems&nbsp;and&nbsp;Views](#systems-make-the-world-go-round)
+        * [Signals&nbsp;and&nbsp;Events](#what-an-eventful-world)
+        * [All-in-one](#all-in-one)
 * [Benchmarks](#benchmarks)
 * [Usage](#usage)
 * [Contributing](#contributions)
@@ -16,13 +22,235 @@ This project is heavily inspired by EnTT. I have a great deal of respect for [sk
 If you’re interested in learning more, be sure to check out `EnTT` [here](https://github.com/skypjack/entt), an excellent and influential C++ entity-component system.
 
 
-## Example
+## Examples
 
+# Hello World
+Let us start from the very beginning. The first thing you must know about this ECS is that, unlike others, your components must be given to the registry up front.
+This policy is in place to efficiently delegate most of the work required for the allocation of component pools to compilation rather than runtime, saving on runtime costs like rtti and vtables.
+
+```cpp
+#include <forge/forge.hpp>
+int main() {
+     forge::registry<int, char> world;
+}
+```
+Now that we have our registry set up let's move on.
+
+# Entities and everything in between
+In a standard ECS an entity is simply a number, nothing more nothing less. This numeric identifier is the foundation for all component relationships. 
+In `Forge` an entity identifier is a number with a packed bit representation. Entities can either be a 64-bit unsigned integer or a 32-bit unsigned integer.
+For simplicity sake let's imagine an 8-bit representation of an entity.
+`0001 0010`
+Here the higher 4 bits (`0001`) represent the entity's id. This id is most useful for the component relationships mentioned above. This id is the basis for all component look-ups, updates, removals, etc...
+the lower 4 bits (`0010`) represent the entity's version, this entity is on it's second version, meaning it has been recycled twice. Recycling entities is important for handling storage memory efficiently (in the case of sparse storage) and ensuring that entities don't grow faster than needed by your world. Versioning also determines whether an old entity of the same id is stale or valid. So now that we have our world, let's create an entity.
+
+```cpp
+#include <forge/forge.hpp>
+int main() {
+     forge::registry<int, char> world;
+     forge::entity e = world.make();
+     // we can also get the id/version using some helpers
+     auto id = forge::to_id(e);
+     auto version = forge::to_version(e);
+     // and similarly, though not needed, we can update the entity's version. This does NOT modify the original version.
+     forge::entity next_version = forge::next(e);
+     // check if alive
+     bool alive = world.is_alive(e);
+     // destroy the entity (removes all its components from their respective pools)
+     world.destroy(e);
+     // check if dead
+     bool dead = !world.is_alive(e);
+}
+```
+# Components put the C into ECS
+`Forge` ensures that your components are type safe, meaning if you do not have your component registered in the registry's type-list a compilation error will be raised.
+Now let's add a component:
+```cpp
+#include <forge/forge.hpp>
+int main() {
+     forge::registry<int, char> world;
+     forge::entity e = world.make();
+     auto component = world.add_component<int>(e, 4);
+     forge::entity e2 = world.make();
+     // we can also add a component concurrently
+     auto [i, c] = world.add_component<int, char>(e2, 1, 'c');
+}
+```
+let's query some components:
+```cpp
+#include <forge/forge.hpp>
+int main() {
+     forge::registry<int, char> world;
+     forge::entity e = world.make();
+     world.add_component<int, char>(e, 1, 'c');
+     auto [i, c] = world.get_component<int, char>(e);
+     std::cout << i << " : " << c << std::endl;
+
+     auto* try_component = world.try_get<int>(e);
+     if(try_component) std::cout << *try_component;
+}
+```
+let's check for components:
+```cpp
+#include <forge/forge.hpp>
+int main() {
+    forge::registry<int, char, std::string, long> world;
+    forge::entity e = world.make();
+    world.add_component<int, char>(e, 1, 'c');
+     
+     // implicitly check logical-and
+    std::cout << std::boolalpha << world.has_component<int, char>(e) << std::endl;         // true
+    std::cout << std::boolalpha << world.has_component<std::string, int>(e) << std::endl;  // false
+
+    // explicitly check logical-and
+    std::cout << std::boolalpha << world.has_component<std::logical_and, int, char>(e) << std::endl;         // true
+    std::cout << std::boolalpha << world.has_component<std::logical_and, std::string, int>(e) << std::endl;  // false
+
+    // explicitly check logical-or
+    std::cout << std::boolalpha << world.has_component<std::logical_or, std::string, int>(e) << std::endl;   // true
+    std::cout << std::boolalpha << world.has_component<std::logical_or, std::string, long>(e) << std::endl;  // false
+}
+```
+We can also replace a component:
+```cpp
+#include <forge/forge.hpp>
+int main() {
+ forge::registry<int, char, std::string, long> world;
+ forge::entity e = world.make();
+ world.add_component<int, char>(e, 1, 'c');
+ world.replace_component<int>(e, 4);
+ // add_or_replace
+ world.add_or_replace_component<char>(e, 'b'); // replace
+ world.add_or_replace_component<std::string>(e, "added"); // add
+}
+```
+finally lets remove components:
+```cpp
+#include <forge/forge.hpp>
+int main() {
+ forge::registry<int, char, std::string, long> world;
+ forge::entity e = world.make();
+ world.add_component<int, char>(e, 1, 'c');
+ bool removed = world.remove_component<int>(e); // true
+ bool removed1 = world.remove_component<long>(e) // false
+}
+```
+# Systems make the world go round
+`Forge` can model systems using views. A view is just a projection of all the entities that are associated with a subset of components. Let's *view* some examples:
+```cpp
+#include <forge/forge.hpp>
+int main() {
+    forge::registry<int, char, std::string, long> world;
+    for (int i = 0; i < 10; i++) {
+            auto e = world.make();
+            std::cout << "making entity " << e << std::endl;
+            if (i % 2 == 0)
+                world.add_component<int, std::string>(e, i, "even");
+            else
+                world.add_component<int, char>(e, i, 'O');
+    }
+    // make an immutable view
+    auto immutable_view = world.view<const int, const std::string>();
+    immutable_view.each([](auto& i, auto& s) {
+        // s = "test"; fails
+        // i = 2; fails
+        std::cout << "Int component : " << i << ", String component : " << s << std::endl;
+    });
+    // make an extendable view
+    immutable_view.each([](const forge::entity e, auto& i, auto& s) {
+        std::cout << e << " has Int component: " << i << ", String component: " << s << std::endl;
+    });
+
+    //make a mutable view
+    auto mutable_view = world.view<int, std::string>();
+    mutable_view.each([&world](const forge::entity e, auto& i, auto& s) {
+        if (forge::to_id(e) == 0) {
+            s = "Not even";
+            std::cout << e << " Int component: " << i << " String component: " << world.get_component<std::string>(e) << std::endl;
+        }
+    });
+
+    //iterator compliance
+    for (const auto e : mutable_view) {
+        std::cout << e << std::endl;
+    }
+
+    for (auto [i, s] : mutable_view.each()) {
+        i = 4;
+    };
+    mutable_view.each([](const forge::entity e, auto& i, auto& s) {
+        std::cout << e << " Int component: " << i << " String component: " << s << std::endl;
+    });
+}
+```
+We can also exclude some subset of components from the view.
+```cpp
+#include <forge/forge.hpp>
+int main() {
+    forge::registry<int, char, std::string, long> world;
+    auto e1 = world.make();
+    world.add_component<int, char>(e1, 100, 'A');
+
+    // Entity with int + char + string
+    auto e2 = world.make();
+    world.add_component<int, char, std::string>(e2, 200, 'B', "excluded");
+
+    // Entity with int + char
+    auto e3 = world.make();
+    world.add_component<int, char>(e3, 300, 'C');
+
+    // Entity with int + char + string
+    auto e4 = world.make();
+    world.add_component<int, char, std::string>(e4, 400, 'D', "excluded");
+
+    // Only entities with int + char AND WITHOUT string
+    auto ex_view = world.view<int, char>().exclude<std::string>();
+
+    for (const auto e : ex_view) {
+        auto [i, c] = world.get_component<int, char>(e);
+        std::cout << e
+                  << " -> int: " << i
+                  << ", char: " << c
+                  << std::endl;
+    }
+}
+```
+# What an eventful world
+We can use signals to notify when an event has happened in our world.
 ```cpp
 #include <forge/forge.hpp>
 
 int main() {
-#if 1
+    forge::registry<int, char, float, std::string, long> world;
+     world.on_construct<int>().connect([](forge::entity e, int v) {
+        std::cout << "triggered construction on entity " << e << " with int [" << v << "]" << std::endl;
+    });
+
+    world.on_destroy<std::string>().connect([](forge::entity e, std::string v) {
+        std::cout << "triggered destruction on entity " << e << " with std::string [" << v << "]" << std::endl;
+    });
+
+    // NOTE on_update only works with forge::registry<Ts...>::replace_component<T> currently
+    world.on_update<int>().connect([](forge::entity e, int v) {
+        std::cout << "triggered update on entity " << e << " with new integer [" << v << "]" << std::endl;
+    });
+
+    forge::entity e = world.make();
+    // Triggers on_construct<int>.
+    world.add_component<int>(e, 42);
+    // Triggers on_update<int>.
+    world.replace_component<int>(e, 100);
+    // Construct a string component.
+    world.add_component<std::string>(e, "hello");
+    // Triggers on_destroy<std::string>.
+    world.remove_component<std::string>(e);
+}
+```
+# All for one and one for all
+```cpp
+#include <forge/forge.hpp>
+
+int main() {
     // define your registry with a list of components
     forge::registry<int, char, float, std::string, long> world;
 
@@ -161,7 +389,6 @@ int main() {
                   << ", char: " << c
                   << std::endl;
     }
-#endif
     return 0;
 }
 

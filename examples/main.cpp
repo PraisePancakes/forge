@@ -21,7 +21,6 @@ int main() {
 
     // make an entity
     forge::entity e = world.make();
-
     // compose singularly
     world.add_component<int>(e, 12);
     world.add_component<std::string>(e, "string");
