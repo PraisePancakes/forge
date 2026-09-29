@@ -26,12 +26,26 @@ int main() {
     // define your registry with a list of components
     forge::registry<int, char, float, std::string, long> world;
 
+    // signals
+    world.on_construct<int>().connect([](forge::entity e, int v) {
+        std::cout << "triggered construction on entity " << e << " with int [" << v << "]" << std::endl;
+    });
+
+    world.on_destroy<std::string>().connect([](forge::entity e, std::string v) {
+        std::cout << "triggered destruction on entity " << e << " with std::string [" << v << "]" << std::endl;
+    });
+
+    // NOTE on_update only works with forge::registry<Ts...>::replace_component<T> currently
+    world.on_update<int>().connect([](forge::entity e, int v) {
+        std::cout << "triggered update on entity " << e << " with new integer [" << v << "]" << std::endl;
+    });
+
     // make an entity
     forge::entity e = world.make();
 
     // compose singularly
     world.add_component<int>(e, 12);
-
+    world.add_component<std::string>(e, "string");
     // compose concurrently
     world.add_component<char, float>(e, 'a', 1.2);
 
@@ -60,8 +74,10 @@ int main() {
     std::cout << std::boolalpha << world.has_component<std::logical_or, std::string, int>(e) << std::endl;   // true
     std::cout << std::boolalpha << world.has_component<std::logical_or, std::string, long>(e) << std::endl;  // false
 
-    std::cout << "=== Remove component int from entity 0 ===" << std::endl;
-    world.remove_component<int>(e);
+    std::cout << "=== Update an existing int component from entity 0 ===" << std::endl;
+    world.replace_component<int>(e, 4);
+    std::cout << "=== Remove component int and string from entity 0 ===" << std::endl;
+    world.remove_component<int, std::string>(e);
     std::cout << std::boolalpha << world.has_component<int>(e) << std::endl;  // false
 
     // destroy
@@ -153,18 +169,22 @@ int main() {
 ```
 **OUTPUT:**
 ```
+triggered construction on entity Entity { ID : 0, VERSION : 0} with int [12]
 === Get concurrently (immutable) -> tuple of immutable references ===
 i2 : 4, c2 : a
 === Implicit has all ===
 true
-false
+true
 === Explicit has all ===
 true
-false
+true
 === Explicit has or ===
 true
-false
-=== Remove component int from entity 0 ===
+true
+=== Update an existing int component from entity 0 ===
+triggered update on entity Entity { ID : 0, VERSION : 0} with new integer [4]
+=== Remove component int and string from entity 0 ===
+triggered destruction on entity Entity { ID : 0, VERSION : 0} with std::string [string]
 false
 === Before destroy===
 Entity { ID : 0, VERSION : 0}
@@ -172,15 +192,25 @@ is alive : true
 === After destroy===
 is alive : false
 making entity Entity { ID : 0, VERSION : 1}
+triggered construction on entity Entity { ID : 0, VERSION : 1} with int [0]
 making entity Entity { ID : 1, VERSION : 0}
+triggered construction on entity Entity { ID : 1, VERSION : 0} with int [1]
 making entity Entity { ID : 2, VERSION : 0}
+triggered construction on entity Entity { ID : 2, VERSION : 0} with int [2]
 making entity Entity { ID : 3, VERSION : 0}
+triggered construction on entity Entity { ID : 3, VERSION : 0} with int [3]
 making entity Entity { ID : 4, VERSION : 0}
+triggered construction on entity Entity { ID : 4, VERSION : 0} with int [4]
 making entity Entity { ID : 5, VERSION : 0}
+triggered construction on entity Entity { ID : 5, VERSION : 0} with int [5]
 making entity Entity { ID : 6, VERSION : 0}
+triggered construction on entity Entity { ID : 6, VERSION : 0} with int [6]
 making entity Entity { ID : 7, VERSION : 0}
+triggered construction on entity Entity { ID : 7, VERSION : 0} with int [7]
 making entity Entity { ID : 8, VERSION : 0}
+triggered construction on entity Entity { ID : 8, VERSION : 0} with int [8]
 making entity Entity { ID : 9, VERSION : 0}
+triggered construction on entity Entity { ID : 9, VERSION : 0} with int [9]
 === Make a immutable view ===
 Int component : 0, String component : even
 Int component : 2, String component : even
@@ -208,6 +238,10 @@ Entity { ID : 4, VERSION : 0} Int component: 4 String component: even
 Entity { ID : 6, VERSION : 0} Int component: 4 String component: even
 Entity { ID : 8, VERSION : 0} Int component: 4 String component: even
 === View with exclusion ===
+triggered construction on entity Entity { ID : 10, VERSION : 0} with int [100]
+triggered construction on entity Entity { ID : 11, VERSION : 0} with int [200]
+triggered construction on entity Entity { ID : 12, VERSION : 0} with int [300]
+triggered construction on entity Entity { ID : 13, VERSION : 0} with int [400]
 Entity { ID : 1, VERSION : 0} -> int: 1, char: O
 Entity { ID : 3, VERSION : 0} -> int: 3, char: O
 Entity { ID : 5, VERSION : 0} -> int: 5, char: O

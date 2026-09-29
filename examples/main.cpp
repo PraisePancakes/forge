@@ -5,12 +5,26 @@ int main() {
     // define your registry with a list of components
     forge::registry<int, char, float, std::string, long> world;
 
+    // signals
+    world.on_construct<int>().connect([](forge::entity e, int v) {
+        std::cout << "triggered construction on entity " << e << " with int [" << v << "]" << std::endl;
+    });
+
+    world.on_destroy<std::string>().connect([](forge::entity e, std::string v) {
+        std::cout << "triggered destruction on entity " << e << " with std::string [" << v << "]" << std::endl;
+    });
+
+    // NOTE on_update only works with forge::registry<Ts...>::replace_component<T> currently
+    world.on_update<int>().connect([](forge::entity e, int v) {
+        std::cout << "triggered update on entity " << e << " with new integer [" << v << "]" << std::endl;
+    });
+
     // make an entity
     forge::entity e = world.make();
 
     // compose singularly
     world.add_component<int>(e, 12);
-
+    world.add_component<std::string>(e, "string");
     // compose concurrently
     world.add_component<char, float>(e, 'a', 1.2);
 
@@ -39,8 +53,10 @@ int main() {
     std::cout << std::boolalpha << world.has_component<std::logical_or, std::string, int>(e) << std::endl;   // true
     std::cout << std::boolalpha << world.has_component<std::logical_or, std::string, long>(e) << std::endl;  // false
 
-    std::cout << "=== Remove component int from entity 0 ===" << std::endl;
-    world.remove_component<int>(e);
+    std::cout << "=== Update an existing int component from entity 0 ===" << std::endl;
+    world.replace_component<int>(e, 4);
+    std::cout << "=== Remove component int and string from entity 0 ===" << std::endl;
+    world.remove_component<int, std::string>(e);
     std::cout << std::boolalpha << world.has_component<int>(e) << std::endl;  // false
 
     // destroy

@@ -11,11 +11,36 @@
 #include "storage.hpp"
 #include "view.hpp"
 namespace forge {
+
+template <typename... Args>
+class signal {
+    std::vector<std::function<void(Args...)>> callbacks;
+
+   public:
+    template <typename F>
+    void connect(F&& f) {
+        callbacks.emplace_back(std::forward<F>(f));
+    };
+
+    void publish(Args... args) {
+        for (auto& callback : callbacks) {
+            callback(args...);
+        }
+    }
+};
+
 using entity = entity_fwd<std::uint64_t>;
 
 template <typename... ComponentRegistry>
     requires(meta::is_unique_set_v<ComponentRegistry...> && !meta::contains_it<bool, ComponentRegistry...>)
 class registry {
+    template <typename T>
+    struct component_signals {
+        signal<forge::entity, T&> construct;
+        signal<forge::entity, T&> update;
+        signal<forge::entity, T&> destroy;
+    };
+
     template <typename T>
     using sparse_set_t = storage::sparse_set<T, entity>;
 
@@ -34,6 +59,7 @@ class registry {
         return static_cast<entity::value_type>(current_entity_id++) << std::numeric_limits<entity::version_type>::digits;
     };
     forge::generation::generator<entity> gen;
+    std::tuple<component_signals<ComponentRegistry>...> signal_map;
 
    public:
     registry() = default;
@@ -41,6 +67,24 @@ class registry {
     registry& operator=(const registry&) = delete;
     registry(registry&&) = default;
     registry& operator=(registry&&) = default;
+
+    template <typename Component>
+        requires(meta::contains_it<std::remove_cvref_t<Component>, ComponentRegistry...>)
+    signal<entity, Component&>& on_construct() {
+        return std::get<index_of_type<Component>>(signal_map).construct;
+    };
+
+    template <typename Component>
+        requires(meta::contains_it<std::remove_cvref_t<Component>, ComponentRegistry...>)
+    signal<entity, Component&>& on_destroy() {
+        return std::get<index_of_type<Component>>(signal_map).destroy;
+    };
+
+    template <typename Component>
+        requires(meta::contains_it<std::remove_cvref_t<Component>, ComponentRegistry...>)
+    signal<entity, Component&>& on_update() {
+        return std::get<index_of_type<Component>>(signal_map).update;
+    };
 
     template <typename... Ts>
         requires(sizeof...(Ts) <= sizeof...(ComponentRegistry))
@@ -85,11 +129,13 @@ class registry {
 
     template <typename T>
     bool remove_component(const entity e) noexcept {
-        using C = std::remove_cvref_t<T>;
-        auto& storage = std::get<meta::index_of<C, std::tuple<ComponentRegistry...>>::value>(storage_map);
-        bool contained = storage.contains(e);
+        using Component = std::remove_cvref_t<T>;
+        auto& storage = std::get<meta::index_of<Component, std::tuple<ComponentRegistry...>>::value>(storage_map);
+        if (!storage.contains(e)) return false;
+        Component& component = storage.get(e);
+        on_destroy<Component>().publish(e, component);
         storage.remove(e);
-        return contained;
+        return true;
     };
 
     template <typename... Ts>
@@ -119,6 +165,8 @@ class registry {
     Component& add_component(const entity e, Args&&... args) {
         sparse_set_t<Component>& storage = std::get<meta::index_of<Component, std::tuple<ComponentRegistry...>>::value>(storage_map);
         storage.emplace(e, std::forward<Args>(args)...);
+        Component& component = storage.get(e);
+        on_construct<Component>().publish(e, component);
         return storage.get(e);
     };
 
@@ -130,8 +178,12 @@ class registry {
 
     template <typename Component, typename... Args>
     Component& replace_component(const entity e, Args&&... args) {
+        constexpr static std::size_t component_index = meta::index_of<std::remove_cvref_t<Component>, std::tuple<ComponentRegistry...>>::value;
         sparse_set_t<Component>& storage = std::get<meta::index_of<Component, std::tuple<ComponentRegistry...>>::value>(storage_map);
+        FORGE_ASSERT(storage.contains(e), "[SPARSE GET ASSERTION FAILED] Entity " << e << " is not contained in the sparse storage of component index " << component_index);
         storage.replace(e, std::forward<Args>(args)...);
+        Component& c = storage.get(e);
+        on_update<Component>().publish(e, c);
         return storage.get(e);
     };
 
