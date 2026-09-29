@@ -36,7 +36,7 @@ int main() {
 ```
 Now that we have our registry set up let's move on.
 
-# Entities and everything in between
+# Entities, Identifiers, and everything in between
 In a standard ECS an entity is simply a number, nothing more nothing less. This numeric identifier is the foundation for all component relationships. 
 In `Forge` an entity identifier is a number with a packed bit representation. Entities can either be a 64-bit unsigned integer or a 32-bit unsigned integer.
 For simplicity sake let's imagine an 8-bit representation of an entity.
