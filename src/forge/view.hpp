@@ -83,6 +83,10 @@ class view_iterator<DerefTag, BaseIterator, std::tuple<InclusionPools...>, std::
     };
     view_iterator& operator++() {
         this->iter++;
+        if constexpr (sizeof...(InclusionPools) == 1 &&
+                      sizeof...(ExclusionPools) == 0)
+            return *this;
+
         while (this->iter != this->end_iter && (!containers::contains_in_every(*this->iter, inclusions) ||
                                                 !containers::contains_in_none(*this->iter, exclusions))) {
             this->iter++;
@@ -225,7 +229,9 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
 
     template <typename Func>
     void each(Func&& f) {
-        for (auto it = underlying_container::begin(); it != underlying_container::end(); it++) {
+        auto it = underlying_container::begin();
+        auto last = underlying_container::end();
+        for (; it != last; it++) {
             this->propogate_const_callback(it.get_value(), f, std::make_index_sequence<sizeof...(Includes)>{});
         }
     };
