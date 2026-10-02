@@ -50,33 +50,5 @@ struct configuration {
      * Number of entities destroyed every frame.
      */
     std::size_t destroys_per_frame = 100;
-
-    // ------------------------------------------------------------
-    // Systems
-    // ------------------------------------------------------------
-
-    /**
-     * Whether the movement system should run.
-     */
-    bool movement_system = true;
-
-    /**
-     * Whether the health/damage system should run.
-     */
-    bool health_system = true;
-
-    /**
-     * Whether entity spawning should run.
-     */
-    bool spawn_system = true;
-
-    /**
-     * Whether entity destruction should run.
-     */
-    bool destroy_system = true;
-
-    // ------------------------------------------------------------
-    // Construction
-    // ------------------------------------------------------------
 };
 };  // namespace benchmark

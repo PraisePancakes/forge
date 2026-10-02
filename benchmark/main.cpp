@@ -15,11 +15,7 @@ int main() {
         .frames = 1'000,
         .delta_time = 1.0f / 60.0f,
         .spawns_per_frame = 10,
-        .destroys_per_frame = 10,
-        .movement_system = true,
-        .health_system = true,
-        .spawn_system = true,
-        .destroy_system = true};
+        .destroys_per_frame = 10};
 
     benchmark::relaxed_benchmark relaxed{
         relaxed_config};
