@@ -27,7 +27,7 @@ int main() {
     benchmark::stress_benchmark stress{
         stress_config};
 
-    //relaxed.run();
+    relaxed.run();
     stress.run();
 
     return 0;

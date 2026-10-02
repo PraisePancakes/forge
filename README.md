@@ -479,13 +479,11 @@ Entity { ID : 12, VERSION : 0} -> int: 300, char: C
 ```
 # Benchmarks
 For the sake of comparison, I wrote a very basic benchmark against EnTT. 
-**NOTE:** 
- This benchmark is not stressful so results may vary with added stress. Feel free to add stress tests to the benchmark.
 
-`Benchmark Results`
+`Benchmark Results: Relaxed`
 ```
 ============================================
-        Forge vs EnTT Benchmark
+        Forge vs EnTT Relaxed Benchmark
 ============================================
 Entities: 1000000
 
@@ -522,6 +520,63 @@ Forge                                        332.913 ms
 EnTT                                        1841.774 ms
 
 Sink: 4999999000000
+```
+
+`Benchmark Results: Stressed`
+```
+============================================
+        Forge vs EnTT - Stress Benchmark
+============================================
+Initial entities: 10000
+Max entities: 20000
+Frames: 1000
+Spawns/frame: 10
+Destroys/frame: 10
+Delta time: 0.0166667
+
+============================================
+Scenario: Movement
+============================================
+Forge - Movement                             973.968 ms
+EnTT - Movement                             2167.044 ms
+
+============================================
+Scenario: Health
+============================================
+Forge - Health                               251.255 ms
+EnTT - Health                                129.708 ms
+
+============================================
+Scenario: Health Read
+============================================
+Forge - Health Read                          248.360 ms
+EnTT - Health Read                           130.352 ms
+
+============================================
+Scenario: Spawn
+============================================
+Forge - Spawn                                  6.357 ms
+EnTT - Spawn                                  13.338 ms
+
+============================================
+Scenario: Destroy
+============================================
+Forge - Destroy                                2.793 ms
+EnTT - Destroy                                11.432 ms
+
+============================================
+Scenario: Spawn + Destroy
+============================================
+Forge - Spawn + Destroy                      778.636 ms
+EnTT - Spawn + Destroy                      3315.466 ms
+
+============================================
+Scenario: Full Game Loop
+============================================
+Forge - Full Game Loop                      1377.718 ms
+EnTT - Full Game Loop                       2707.033 ms
+
+Sink: 164422669388
 ```
 
 # Usage
