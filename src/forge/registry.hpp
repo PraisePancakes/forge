@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "config/entity_configuration.hpp"
 #include "entity.hpp"
 #include "generation.hpp"
 #include "meta.hpp"
@@ -29,7 +30,7 @@ class signal {
     }
 };
 
-using entity = entity_fwd<std::uint64_t>;
+using entity = configuration::standard_entity;
 
 template <typename... ComponentRegistry>
     requires(meta::is_unique_set_v<ComponentRegistry...> && !meta::contains_it<bool, ComponentRegistry...>)

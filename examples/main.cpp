@@ -1,5 +1,4 @@
 #include <forge/forge.hpp>
-
 int main() {
 #if 1
     // define your registry with a list of components

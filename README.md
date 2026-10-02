@@ -42,7 +42,7 @@ In `Forge` an entity identifier is a number with a packed bit representation. En
 For simplicity sake let's imagine an 8-bit representation of an entity.
 `0001 0010`
 Here the higher 4 bits (`0001`) represent the entity's id. This id is most useful for the component relationships mentioned above. This id is the basis for all component look-ups, updates, removals, etc...
-the lower 4 bits (`0010`) represent the entity's version, this entity is on it's second version, meaning it has been recycled twice. Recycling entities is important for handling storage memory efficiently (in the case of sparse storage) and ensuring that entities don't grow faster than needed by your world. Versioning also determines whether an old entity of the same id is stale or valid. So now that we have our world, let's create an entity.
+the lower 4 bits (`0010`) represent the entity's version, this entity is on it's second version, meaning it has been recycled twice. Recycling entities is important for handling storage memory efficiently (in the case of sparse storage) and ensuring that entities don't grow faster than needed by your world. Versioning also determines whether an old entity of the same id is stale or valid. To change the size of an entity's representation refer to `forge/config/entity_configuration.hpp`, there you can change the size from the defaulted `std::uint64_t` to `std::uint32_t`. So now that we have our world, let's create an entity.
 
 ```cpp
 #include <forge/forge.hpp>
