@@ -5,7 +5,7 @@ Forging a world one entity at a time. `Forge` is a header-only, lightweight and 
     * [Motivation](#motivation)
     * [Examples](#examples)
         * [Hello&nbsp;World](#hello-world)
-        * [Entities](#entities-and-everything-in-between)
+        * [Entities](#entities-identifiers-and-everything-in-between)
         * [Components](#components)
         * [Systems&nbsp;and&nbsp;Views](#systems-make-the-world-go-round)
         * [Signals&nbsp;and&nbsp;Events](#what-an-eventful-world)
