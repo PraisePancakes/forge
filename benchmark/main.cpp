@@ -10,12 +10,12 @@ int main() {
     };
 
     benchmark::configuration stress_config{
-        .initial_entities = 10'000,
-        .max_entities = 20'000,
-        .frames = 1'000,
+        .initial_entities = 100'000,
+        .max_entities = 200'000,
+        .frames = 10'000,
         .delta_time = 1.0f / 60.0f,
-        .spawns_per_frame = 10,
-        .destroys_per_frame = 10};
+        .spawns_per_frame = 100,
+        .destroys_per_frame = 100};
 
     benchmark::relaxed_benchmark relaxed{
         relaxed_config};
@@ -23,7 +23,7 @@ int main() {
     benchmark::stress_benchmark stress{
         stress_config};
 
-    relaxed.run();
+    // relaxed.run();
     stress.run();
 
     return 0;

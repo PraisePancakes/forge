@@ -1,9 +1,12 @@
 #pragma once
 
+#include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <entt/entt.hpp>
 #include <forge/forge.hpp>
+#include <iomanip>
 #include <iostream>
 #include <string_view>
 #include <vector>
@@ -47,6 +50,9 @@ class stress_benchmark : public benchmark {
    private:
     configuration _config;
 
+    static constexpr std::size_t warmup_runs = 3;
+    static constexpr std::size_t measured_runs = 7;
+
     // ============================================================
     // Configuration
     // ============================================================
@@ -70,6 +76,12 @@ class stress_benchmark : public benchmark {
             << '\n'
             << "Delta time: "
             << _config.delta_time
+            << '\n'
+            << "Warmup runs: "
+            << warmup_runs
+            << '\n'
+            << "Measured runs: "
+            << measured_runs
             << '\n';
     }
 
@@ -114,119 +126,215 @@ class stress_benchmark : public benchmark {
     }
 
     // ============================================================
+    // Measurement
+    // ============================================================
+
+    template <typename Setup, typename Func>
+    void measure_median(
+        std::string_view name,
+        Setup&& setup,
+        Func&& func) {
+        // --------------------------------------------------------
+        // Warmup
+        // --------------------------------------------------------
+
+        for (std::size_t i = 0;
+             i < warmup_runs;
+             ++i) {
+            auto world = setup();
+            func(world);
+        }
+
+        // --------------------------------------------------------
+        // Measured runs
+        // --------------------------------------------------------
+
+        std::vector<double> times;
+        times.reserve(measured_runs);
+
+        for (std::size_t i = 0;
+             i < measured_runs;
+             ++i) {
+            auto world = setup();
+
+            const auto start =
+                std::chrono::steady_clock::now();
+
+            func(world);
+
+            const auto end =
+                std::chrono::steady_clock::now();
+
+            const double elapsed =
+                std::chrono::duration<double, std::milli>(
+                    end - start)
+                    .count();
+
+            times.push_back(elapsed);
+        }
+
+        std::sort(
+            times.begin(),
+            times.end());
+
+        const double median =
+            times[times.size() / 2];
+
+        const double minimum =
+            times.front();
+
+        const double maximum =
+            times.back();
+
+        std::cout
+            << std::left
+            << std::setw(42)
+            << name
+            << std::right
+            << std::fixed
+            << std::setprecision(3)
+            << median
+            << " ms"
+            << "  [min "
+            << minimum
+            << ", max "
+            << maximum
+            << "]\n";
+    }
+
+    // ============================================================
     // Forge
     // ============================================================
 
     void forge(scenario scenario) {
-        forge::registry<
-            Position,
-            Velocity,
-            Health>
-            world;
-
-        std::vector<forge::entity> entities;
-
-        entities.reserve(_config.max_entities);
-
-        create_forge_world(
-            world,
-            entities);
-
         switch (scenario) {
             case scenario::movement:
-                measure(
+                measure_median(
                     "Forge - Movement",
                     [&] {
+                        return std::make_unique<
+                            forge_world>(_config);
+                    },
+                    [&](std::unique_ptr<forge_world>& world) {
                         for (std::size_t frame = 0;
                              frame < _config.frames;
                              ++frame) {
-                            movement_forge(world);
+                            movement_forge(world->registry);
                         }
                     });
                 break;
 
             case scenario::health:
-                measure(
+                measure_median(
                     "Forge - Health",
                     [&] {
+                        return std::make_unique<
+                            forge_world>(_config);
+                    },
+                    [&](std::unique_ptr<forge_world>& world) {
                         for (std::size_t frame = 0;
                              frame < _config.frames;
                              ++frame) {
-                            health_forge(world);
+                            health_forge(world->registry);
                         }
                     });
                 break;
+
             case scenario::health_read:
-                measure(
+                measure_median(
                     "Forge - Health Read",
                     [&] {
+                        return std::make_unique<
+                            forge_world>(_config);
+                    },
+                    [&](std::unique_ptr<forge_world>& world) {
                         for (std::size_t frame = 0;
                              frame < _config.frames;
                              ++frame) {
-                            health_read_forge(world);
+                            health_read_forge(
+                                world->registry);
                         }
                     });
                 break;
+
             case scenario::spawn:
-                measure(
+                measure_median(
                     "Forge - Spawn",
                     [&] {
+                        return std::make_unique<
+                            forge_world>(_config);
+                    },
+                    [&](std::unique_ptr<forge_world>& world) {
                         for (std::size_t frame = 0;
                              frame < _config.frames;
                              ++frame) {
                             spawn_forge(
-                                world,
-                                entities);
+                                world->registry,
+                                world->entities);
                         }
                     });
                 break;
 
             case scenario::destroy:
-                measure(
+                measure_median(
                     "Forge - Destroy",
                     [&] {
+                        return std::make_unique<
+                            forge_world>(_config);
+                    },
+                    [&](std::unique_ptr<forge_world>& world) {
                         destroy_all_forge(
-                            world,
-                            entities);
+                            world->registry,
+                            world->entities);
                     });
                 break;
 
             case scenario::spawn_destroy:
-                measure(
+                measure_median(
                     "Forge - Spawn + Destroy",
                     [&] {
+                        return std::make_unique<
+                            forge_world>(_config);
+                    },
+                    [&](std::unique_ptr<forge_world>& world) {
                         for (std::size_t frame = 0;
                              frame < _config.frames;
                              ++frame) {
                             spawn_forge(
-                                world,
-                                entities);
+                                world->registry,
+                                world->entities);
 
                             destroy_forge(
-                                world,
-                                entities);
+                                world->registry,
+                                world->entities);
                         }
                     });
                 break;
 
             case scenario::full_loop:
-                measure(
+                measure_median(
                     "Forge - Full Game Loop",
                     [&] {
+                        return std::make_unique<
+                            forge_world>(_config);
+                    },
+                    [&](std::unique_ptr<forge_world>& world) {
                         for (std::size_t frame = 0;
                              frame < _config.frames;
                              ++frame) {
                             spawn_forge(
-                                world,
-                                entities);
+                                world->registry,
+                                world->entities);
 
-                            movement_forge(world);
+                            movement_forge(
+                                world->registry);
 
-                            health_forge(world);
+                            health_forge(
+                                world->registry);
 
                             destroy_forge(
-                                world,
-                                entities);
+                                world->registry,
+                                world->entities);
                         }
                     });
                 break;
@@ -238,111 +346,134 @@ class stress_benchmark : public benchmark {
     // ============================================================
 
     void entt(scenario scenario) {
-        entt::registry world;
-
-        std::vector<entt::entity> entities;
-
-        entities.reserve(_config.max_entities);
-
-        create_entt_world(
-            world,
-            entities);
-
         switch (scenario) {
             case scenario::movement:
-                measure(
+                measure_median(
                     "EnTT - Movement",
                     [&] {
+                        return std::make_unique<
+                            entt_world>(_config);
+                    },
+                    [&](std::unique_ptr<entt_world>& world) {
                         for (std::size_t frame = 0;
                              frame < _config.frames;
                              ++frame) {
-                            movement_entt(world);
+                            movement_entt(world->registry);
                         }
                     });
                 break;
-            case scenario::health_read:
-                measure(
-                    "EnTT - Health Read",
-                    [&] {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
-                            health_read_entt(world);
-                        }
-                    });
-                break;
+
             case scenario::health:
-                measure(
+                measure_median(
                     "EnTT - Health",
                     [&] {
+                        return std::make_unique<
+                            entt_world>(_config);
+                    },
+                    [&](std::unique_ptr<entt_world>& world) {
                         for (std::size_t frame = 0;
                              frame < _config.frames;
                              ++frame) {
-                            health_entt(world);
+                            health_entt(world->registry);
+                        }
+                    });
+                break;
+
+            case scenario::health_read:
+                measure_median(
+                    "EnTT - Health Read",
+                    [&] {
+                        return std::make_unique<
+                            entt_world>(_config);
+                    },
+                    [&](std::unique_ptr<entt_world>& world) {
+                        for (std::size_t frame = 0;
+                             frame < _config.frames;
+                             ++frame) {
+                            health_read_entt(
+                                world->registry);
                         }
                     });
                 break;
 
             case scenario::spawn:
-                measure(
+                measure_median(
                     "EnTT - Spawn",
                     [&] {
+                        return std::make_unique<
+                            entt_world>(_config);
+                    },
+                    [&](std::unique_ptr<entt_world>& world) {
                         for (std::size_t frame = 0;
                              frame < _config.frames;
                              ++frame) {
                             spawn_entt(
-                                world,
-                                entities);
+                                world->registry,
+                                world->entities);
                         }
                     });
                 break;
 
             case scenario::destroy:
-                measure(
+                measure_median(
                     "EnTT - Destroy",
                     [&] {
+                        return std::make_unique<
+                            entt_world>(_config);
+                    },
+                    [&](std::unique_ptr<entt_world>& world) {
                         destroy_all_entt(
-                            world,
-                            entities);
+                            world->registry,
+                            world->entities);
                     });
                 break;
 
             case scenario::spawn_destroy:
-                measure(
+                measure_median(
                     "EnTT - Spawn + Destroy",
                     [&] {
+                        return std::make_unique<
+                            entt_world>(_config);
+                    },
+                    [&](std::unique_ptr<entt_world>& world) {
                         for (std::size_t frame = 0;
                              frame < _config.frames;
                              ++frame) {
                             spawn_entt(
-                                world,
-                                entities);
+                                world->registry,
+                                world->entities);
 
                             destroy_entt(
-                                world,
-                                entities);
+                                world->registry,
+                                world->entities);
                         }
                     });
                 break;
 
             case scenario::full_loop:
-                measure(
+                measure_median(
                     "EnTT - Full Game Loop",
                     [&] {
+                        return std::make_unique<
+                            entt_world>(_config);
+                    },
+                    [&](std::unique_ptr<entt_world>& world) {
                         for (std::size_t frame = 0;
                              frame < _config.frames;
                              ++frame) {
                             spawn_entt(
-                                world,
-                                entities);
+                                world->registry,
+                                world->entities);
 
-                            movement_entt(world);
+                            movement_entt(
+                                world->registry);
 
-                            health_entt(world);
+                            health_entt(
+                                world->registry);
 
                             destroy_entt(
-                                world,
-                                entities);
+                                world->registry,
+                                world->entities);
                         }
                     });
                 break;
@@ -350,17 +481,58 @@ class stress_benchmark : public benchmark {
     }
 
     // ============================================================
+    // Benchmark world wrappers
+    // ============================================================
+
+    struct forge_world {
+        forge::registry<
+            Position,
+            Velocity,
+            Health>
+            registry;
+
+        std::vector<forge::entity> entities;
+
+        explicit forge_world(
+            const configuration& config) {
+            entities.reserve(config.max_entities);
+
+            create_forge_world(
+                registry,
+                entities,
+                config);
+        }
+    };
+
+    struct entt_world {
+        entt::registry registry;
+
+        std::vector<entt::entity> entities;
+
+        explicit entt_world(
+            const configuration& config) {
+            entities.reserve(config.max_entities);
+
+            create_entt_world(
+                registry,
+                entities,
+                config);
+        }
+    };
+
+    // ============================================================
     // World creation - Forge
     // ============================================================
 
-    void create_forge_world(
+    static void create_forge_world(
         forge::registry<
             Position,
             Velocity,
             Health>& world,
-        std::vector<forge::entity>& entities) {
+        std::vector<forge::entity>& entities,
+        const configuration& config) {
         for (std::size_t i = 0;
-             i < _config.initial_entities;
+             i < config.initial_entities;
              ++i) {
             const auto e = world.make();
 
@@ -386,11 +558,12 @@ class stress_benchmark : public benchmark {
     // World creation - EnTT
     // ============================================================
 
-    void create_entt_world(
+    static void create_entt_world(
         entt::registry& world,
-        std::vector<entt::entity>& entities) {
+        std::vector<entt::entity>& entities,
+        const configuration& config) {
         for (std::size_t i = 0;
-             i < _config.initial_entities;
+             i < config.initial_entities;
              ++i) {
             const auto e = world.create();
 
@@ -550,6 +723,7 @@ class stress_benchmark : public benchmark {
                 health.value);
         });
     }
+
     void health_read_forge(
         forge::registry<
             Position,
@@ -562,6 +736,7 @@ class stress_benchmark : public benchmark {
                 health.value);
         });
     }
+
     // ============================================================
     // EnTT - Health
     // ============================================================
@@ -569,12 +744,15 @@ class stress_benchmark : public benchmark {
     void health_entt(
         entt::registry& world) {
         auto view = world.view<Health>();
+
         view.each([](Health& health) {
             health.value -= 1;
+
             sink += static_cast<std::uint64_t>(
                 health.value);
         });
     }
+
     void health_read_entt(
         entt::registry& world) {
         auto view = world.view<Health>();
@@ -584,6 +762,7 @@ class stress_benchmark : public benchmark {
                 health.value);
         });
     }
+
     // ============================================================
     // Forge - Destroy
     // ============================================================
@@ -659,8 +838,6 @@ class stress_benchmark : public benchmark {
 
     // ============================================================
     // Destroy everything - Forge
-    //
-    // This isolates destruction from the health system.
     // ============================================================
 
     void destroy_all_forge(
