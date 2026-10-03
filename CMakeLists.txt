@@ -40,6 +40,7 @@ target_compile_options(${PROJECT_NAME}
 option(FORGE_BUILD_EXAMPLES "Build Forge examples" OFF)
 option(FORGE_BUILD_TESTS "Build Forge tests" OFF)
 option(FORGE_BUILD_BENCHMARK "Build Forge benchmarks" OFF)
+option(FORGE_BUILD_SANDBOX "Build Forge sandbox" ON)
 
 if(FORGE_BUILD_EXAMPLES)
     add_executable(forge_example examples/main.cpp)
@@ -53,4 +54,8 @@ endif()
 
 if(FORGE_BUILD_BENCHMARK)
     add_subdirectory(benchmark)
+endif()
+
+if(FORGE_BUILD_SANDBOX)
+    add_subdirectory(sandbox)
 endif()
