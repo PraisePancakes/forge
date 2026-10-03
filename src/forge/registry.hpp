@@ -65,6 +65,13 @@ class registry {
     registry(registry&&) = default;
     registry& operator=(registry&&) = default;
 
+    void reserve(const std::size_t n) {
+        std::apply([n](auto&&... args) {
+            (std::forward<decltype(args)>(args).reserve(n), ...);
+        },
+                   storage_map);
+    };
+
     template <typename Component>
         requires(meta::contains_it<std::remove_cvref_t<Component>, ComponentRegistry...>)
     signal<entity, Component&>& on_construct() {
