@@ -55,10 +55,6 @@ class registry {
     using storage_pool_type = std::tuple<sparse_set_t<type_of_t<index_of_type<Ts>>>...>;
     storage_pool_type<ComponentRegistry...> storage_map;
 
-    entity::id_type current_entity_id{0};
-    entity::value_type generate_next() noexcept {
-        return static_cast<entity::value_type>(current_entity_id++) << std::numeric_limits<entity::version_type>::digits;
-    };
     forge::generation::generator<entity> gen;
     std::tuple<component_signals<ComponentRegistry>...> signal_map;
 

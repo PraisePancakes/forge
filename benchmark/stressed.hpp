@@ -36,12 +36,12 @@ class stress_benchmark : public benchmark {
 
         print_configuration();
 
-        run_scenario(scenario::movement);
-        run_scenario(scenario::health);
-        run_scenario(scenario::health_read);
-        run_scenario(scenario::spawn);
-        run_scenario(scenario::destroy);
-        run_scenario(scenario::spawn_destroy);
+        // run_scenario(scenario::movement);
+        // run_scenario(scenario::health);
+        // run_scenario(scenario::health_read);
+        // run_scenario(scenario::spawn);
+        // run_scenario(scenario::destroy);
+        // run_scenario(scenario::spawn_destroy);
         run_scenario(scenario::full_loop);
 
         print_sink();
@@ -775,25 +775,16 @@ class stress_benchmark : public benchmark {
         std::vector<forge::entity>& entities) {
         std::size_t destroyed = 0;
 
-        for (auto it = entities.begin();
-             it != entities.end() &&
-             destroyed <
-                 _config.destroys_per_frame;) {
+        for (auto it = entities.begin(); it != entities.end() && destroyed < _config.destroys_per_frame;) {
             const auto e = *it;
-
-            auto* health =
-                world.try_get<Health>(e);
-
-            if (health == nullptr) {
+            if (!world.is_alive(e)) {
                 it = entities.erase(it);
                 continue;
             }
-
-            if (health->value <= 0) {
+            auto& health = world.get_component<Health>(e);
+            if (health.value <= 0) {
                 world.destroy(e);
-
                 it = entities.erase(it);
-
                 ++destroyed;
             } else {
                 ++it;
@@ -811,24 +802,16 @@ class stress_benchmark : public benchmark {
         std::size_t destroyed = 0;
 
         for (auto it = entities.begin();
-             it != entities.end() &&
-             destroyed <
-                 _config.destroys_per_frame;) {
+             it != entities.end() && destroyed < _config.destroys_per_frame;) {
             const auto e = *it;
-
             if (!world.valid(e)) {
                 it = entities.erase(it);
                 continue;
             }
-
-            auto& health =
-                world.get<Health>(e);
-
+            auto& health = world.get<Health>(e);
             if (health.value <= 0) {
                 world.destroy(e);
-
                 it = entities.erase(it);
-
                 ++destroyed;
             } else {
                 ++it;

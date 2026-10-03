@@ -229,10 +229,18 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
 
     template <typename Func>
     void each(Func&& f) {
-        auto it = underlying_container::begin();
-        auto last = underlying_container::end();
-        for (; it != last; it++) {
-            this->propogate_const_callback(it.get_value(), f, std::make_index_sequence<sizeof...(Includes)>{});
+        if constexpr (sizeof...(Includes) == 1 && sizeof...(Excludes) == 0) {
+            // native iteration
+            auto& pool = std::get<0>(this->inclusions);
+            for (auto& e : pool) {
+                this->propogate_const_callback(e, f, std::make_index_sequence<1>{});
+            }
+        } else {
+            auto it = underlying_container::begin();
+            auto last = underlying_container::end();
+            for (; it != last; ++it) {
+                this->propogate_const_callback(it.get_value(), f, std::make_index_sequence<sizeof...(Includes)>{});
+            }
         }
     };
 };
