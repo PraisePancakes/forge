@@ -11,7 +11,7 @@ namespace forge::storage {
 template <typename CTy, typename KeyType>
     requires(!std::is_same_v<CTy, bool>)
 class sparse_set {
-    std::vector<CTy> dense;
+    std::vector<std::unique_ptr<CTy>> dense;
     std::vector<KeyType> dense_mirror;
     std::vector<std::size_t> sparse;
 
@@ -30,16 +30,18 @@ class sparse_set {
         if (sparse[to_id(e)] != EMPTY) {
             return;
         }
+        std::unique_ptr<CTy> component = std::make_unique<CTy>(std::forward<Args>(args)...);
         sparse[to_id(e)] = dense.size();
         dense_mirror.push_back(e);
-        dense.emplace_back(std::forward<Args>(args)...);
+        dense.push_back(std::move(component));
     };
 
     template <typename... Args>
     void replace(KeyType e, Args&&... args) {
         FORGE_ASSERT(contains(e), "Cannot replace component that does not exist");
         const auto index = sparse[to_id(e)];
-        dense[index] = CTy(std::forward<Args>(args)...);
+        std::unique_ptr<CTy> component = std::make_unique<CTy>(std::forward<Args>(args)...);
+        dense[index] = std::move(component);
     };
 
     void reserve(const std::size_t n) {
@@ -91,7 +93,7 @@ class sparse_set {
     }
 
     [[nodiscard]] CTy& get(KeyType e) noexcept {
-        return dense[sparse[to_id(e)]];
+        return *(dense[sparse[to_id(e)]]);
     };
 
     [[nodiscard]] const CTy& get(KeyType e) const noexcept {
