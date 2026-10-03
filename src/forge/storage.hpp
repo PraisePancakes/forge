@@ -23,7 +23,7 @@ class sparse_set {
         [[nodiscard]] const CTy* data() const noexcept {
             return reinterpret_cast<const CTy*>(storage);
         }
-
+        // safe read on reinterpret cast
         [[nodiscard]] CTy& operator[](std::size_t index) noexcept {
             return *std::launder(data() + index);
         }
@@ -49,8 +49,7 @@ class sparse_set {
         }
     }
 
-    [[nodiscard]]
-    CTy& at(std::size_t index) noexcept {
+    [[nodiscard]] CTy& at(std::size_t index) noexcept {
         return (*components[index / PAGE_SIZE])[index % PAGE_SIZE];
     }
 
@@ -103,10 +102,6 @@ class sparse_set {
         components.reserve(page_count);
     }
 
-    // swap and pop
-    //
-    // Time:  O(1)
-    // Space: O(1)
     void remove(KeyType e) {
         if (!contains(e)) return;
         const auto id = to_id(e);
