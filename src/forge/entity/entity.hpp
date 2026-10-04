@@ -119,6 +119,13 @@ struct null_t {
     [[nodiscard]] bool operator!=(null_t) noexcept {
         return false;
     }
+
+    template <entity_like Entity>
+    [[nodiscard]] constexpr bool operator==(const Entity& o) const noexcept {
+        using traits_type = entity_traits<Entity>;
+        auto n = traits_type::construct(std::numeric_limits<typename traits_type::entity_type>::max(), std::numeric_limits<typename traits_type::version_type>::max());
+        return (to_value(o) == to_value(n));
+    }
 };
 
 inline constexpr static null_t null{};

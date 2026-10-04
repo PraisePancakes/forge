@@ -31,15 +31,12 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)
-target_compile_options(${PROJECT_NAME}
-    INTERFACE
-        $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
-        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra>
-)
-option(FORGE_BUILD_DEV "Build the developement bed" OFF)
+
+option(FORGE_BUILD_DEV "Build the developement bed" ON)
 if(FORGE_BUILD_DEV)
     option(FORGE_BUILD_EXAMPLES "Build Forge examples" ON)
     option(FORGE_BUILD_TESTS "Build Forge tests" ON)
+    option(FORGE_BUILD_BENCHMARK "Build Forge benchmarks" OFF)
     if(FORGE_BUILD_EXAMPLES)
         add_executable(forge_example examples/main.cpp)
         target_link_libraries(forge_example PRIVATE forge)
@@ -47,5 +44,8 @@ if(FORGE_BUILD_DEV)
     if(FORGE_BUILD_TESTS)
         enable_testing()
         add_subdirectory(tests)
+    endif()
+     if(FORGE_BUILD_BENCHMARK)
+        add_subdirectory(benchmark)
     endif()
 endif()

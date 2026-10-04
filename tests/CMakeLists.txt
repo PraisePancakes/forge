@@ -11,6 +11,9 @@ FetchContent_MakeAvailable(doctest)
 add_executable(forge_tests
    entity_traits.cpp
    generator.cpp
+   sparse_set.cpp
+   pool_storage.cpp
+   registry.cpp
     main.cpp
 )
 

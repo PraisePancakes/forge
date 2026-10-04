@@ -1,3 +1,8 @@
+#include "config/macro.hpp"
+#include "config/version.hpp"
 #include "entity/entity.hpp"
 #include "entity/generator.hpp"
 #include "entity/sparse_set.hpp"
+#include "meta.hpp"
+#include "registry.hpp"
+#include "storage.hpp"
