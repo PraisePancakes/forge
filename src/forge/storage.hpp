@@ -35,6 +35,11 @@ class pool_storage : public basic_sparse_set<Entity> {
         return pool[index];
     }
 
+    const Component& get(const Entity e) const {
+        const auto index = this->index_of(e);
+        return pool[index];
+    }
+
     Component& operator[](const Entity e) noexcept {
         return this->get(e);
     }

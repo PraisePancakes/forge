@@ -101,6 +101,12 @@ class basic_sparse_set {
         return *p;
     }
 
+    [[nodiscard]] auto& get_ref(const Entity e) const noexcept {
+        auto* p = get(e);
+        FORGE_ASSERT(p, "Invalid reference to null page offset");
+        return *p;
+    }
+
     void swap_at(const std::size_t l, const std::size_t r) noexcept {
         const auto from = dense[l];
         const auto to = dense[r];
@@ -157,6 +163,10 @@ class basic_sparse_set {
     };
 
     [[nodiscard]] auto& index_of(const Entity e) noexcept {
+        return get_ref(e);
+    };
+
+    [[nodiscard]] auto& index_of(const Entity e) const noexcept {
         return get_ref(e);
     };
 
