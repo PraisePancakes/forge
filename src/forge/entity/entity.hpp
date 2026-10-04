@@ -35,16 +35,16 @@ template <typename Type>
 concept entity_like = requires {
     typename internal::entity_traits<Type>::value_type;
 };
-template <typename E>
+
+template <typename Traits>
 struct basic_entity_traits {
-    using Traits = internal::entity_traits<E>;
     using value_type = Traits::value_type;
     using version_type = Traits::version_type;
     using entity_type = Traits::entity_type;
     // can be length of either version or entity
     static constexpr auto partitioned_length = std::numeric_limits<version_type>::digits;
     static constexpr auto length = std::numeric_limits<value_type>::digits;
-    static_assert(partitioned_length == std::numeric_limits<entity_type>::digits && partitioned_length * 2 == length, "identifier types must be bit-symmetric and half of value_type");
+    static_assert(partitioned_length == std::numeric_limits<entity_type>::digits && (partitioned_length * 2) == length, "identifier types must be bit-symmetric and half of value_type");
 
     template <typename V>
         requires std::same_as<std::remove_cvref_t<V>, value_type>
@@ -90,24 +90,26 @@ template <entity_like T>
 struct entity_traits : basic_entity_traits<internal::entity_traits<T>> {
     using base_type = basic_entity_traits<internal::entity_traits<T>>;
 };
-template <typename Entity>
-[[nodiscard]] constexpr basic_entity_traits<Entity>::value_type to_value(const Entity value) noexcept {
-    return basic_entity_traits<Entity>::to_value(value);
-}
 
 template <typename Entity>
-[[nodiscard]] constexpr basic_entity_traits<Entity>::entity_type to_entity(const Entity value) noexcept {
-    return basic_entity_traits<Entity>::to_entity(value);
-}
+[[nodiscard]] constexpr entity_traits<Entity>::value_type to_value(const Entity value) noexcept {
+    return entity_traits<Entity>::to_value(value);
+};
 
 template <typename Entity>
-[[nodiscard]] constexpr basic_entity_traits<Entity>::version_type to_version(const Entity value) noexcept {
-    return basic_entity_traits<Entity>::to_version(value);
-}
+[[nodiscard]] constexpr entity_traits<Entity>::entity_type to_entity(const Entity value) noexcept {
+    return entity_traits<Entity>::to_entity(value);
+};
+
+template <typename Entity>
+[[nodiscard]] constexpr entity_traits<Entity>::version_type to_version(const Entity value) noexcept {
+    return entity_traits<Entity>::to_version(value);
+};
+
 struct null_t {
     template <entity_like Entity>
     [[nodiscard]] constexpr operator Entity() const noexcept {
-        using traits_type = basic_entity_traits<Entity>;
+        using traits_type = entity_traits<Entity>;
         return traits_type::construct(std::numeric_limits<typename traits_type::entity_type>::max(), std::numeric_limits<typename traits_type::version_type>::max());
     }
 

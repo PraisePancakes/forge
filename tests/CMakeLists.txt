@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(doctest)
 
 add_executable(forge_tests
    entity_traits.cpp
+   generator.cpp
     main.cpp
 )
 
