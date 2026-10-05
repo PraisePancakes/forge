@@ -74,6 +74,7 @@ int main(void) {
     const int screenHeight = 800;
     InitWindow(screenWidth, screenHeight, "sandbox");
     world registry;
+    registry.reserve(10);  // allows pointer stability on player, p, but need to work on avoiding this and still keeping references stable
     auto player = registry.make();
     auto enemy = registry.make();
     auto [p, v, _, _] = registry.add_component<Position, Velocity, Tag, Health>(player, Position{screenWidth / 2, screenHeight / 2}, Velocity{0}, Tag{.tag = "Player"}, Health{100});
@@ -82,6 +83,7 @@ int main(void) {
 
     while (!WindowShouldClose()) {
         float delta = GetFrameTime();
+        std::cout << p.pos.x << " : " << p.pos.y << std::endl;
         Update(registry, delta);
         HandleKeyEvents(registry, player);
         HandleMouseEvents(registry, player, camera);

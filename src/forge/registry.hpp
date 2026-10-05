@@ -1,18 +1,17 @@
 #pragma once
+#include <functional>
 #include <iostream>
 #include <stack>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 
-#include "config/entity_configuration.hpp"
-#include "entity.hpp"
-#include "generation.hpp"
+#include "entity/entity.hpp"
+#include "entity/generator.hpp"
 #include "meta.hpp"
 #include "storage.hpp"
 #include "view.hpp"
 namespace forge {
-
 template <typename... Args>
 class signal {
     std::vector<std::function<void(Args...)>> callbacks;
@@ -30,7 +29,7 @@ class signal {
     }
 };
 
-using entity = configuration::standard_entity;
+using entity = std::uint64_t;
 
 template <typename... ComponentRegistry>
     requires(meta::is_unique_set_v<ComponentRegistry...> && !meta::contains_it<bool, ComponentRegistry...>)
@@ -43,7 +42,7 @@ class registry {
     };
 
     template <typename T>
-    using sparse_set_t = storage::sparse_set<T, entity>;
+    using storage_type = storage::pool_storage<entity, T>;
 
     template <typename T>
     static constexpr std::size_t index_of_type = meta::index_of<std::remove_cvref_t<T>, std::tuple<ComponentRegistry...>>::value;
@@ -52,10 +51,10 @@ class registry {
     using type_of_t = meta::type_of_t<Index, ComponentRegistry...>;
 
     template <typename... Ts>
-    using storage_pool_type = std::tuple<sparse_set_t<type_of_t<index_of_type<Ts>>>...>;
-    storage_pool_type<ComponentRegistry...> storage_map;
+    using storage_pool_type = std::tuple<storage_type<type_of_t<index_of_type<Ts>>>...>;
 
-    forge::generation::generator<entity> gen;
+    storage_pool_type<ComponentRegistry...> storage_map;
+    forge::generator<entity> gen;
     std::tuple<component_signals<ComponentRegistry>...> signal_map;
 
    public:
@@ -104,7 +103,7 @@ class registry {
     };
 
     [[nodiscard]] bool is_alive(const entity e) const noexcept {
-        return gen.is_valid(e);
+        return gen.valid(e);
     }
 
     template <typename C>
@@ -112,7 +111,7 @@ class registry {
         if (!is_alive(e))
             return false;
         using stripped_type = std::remove_cvref_t<C>;
-        const sparse_set_t<stripped_type>& storage = std::get<meta::index_of<stripped_type, std::tuple<ComponentRegistry...>>::value>(storage_map);
+        const storage_type<stripped_type>& storage = std::get<meta::index_of<stripped_type, std::tuple<ComponentRegistry...>>::value>(storage_map);
         return storage.contains(e);
     };
 
@@ -169,7 +168,7 @@ class registry {
     C& add_component(const entity e, Args&&... args) {
         using Component = std::remove_cvref_t<C>;
         static_assert(meta::contains_it<Component, ComponentRegistry...> && "Unregistered component.");
-        sparse_set_t<Component>& storage = std::get<meta::index_of<Component, std::tuple<ComponentRegistry...>>::value>(storage_map);
+        storage_type<Component>& storage = std::get<meta::index_of<Component, std::tuple<ComponentRegistry...>>::value>(storage_map);
         storage.emplace(e, std::forward<Args>(args)...);
         Component& component = storage.get(e);
         on_construct<Component>().publish(e, component);
@@ -186,8 +185,8 @@ class registry {
     Component& replace_component(const entity e, Args&&... args) {
         static_assert(meta::contains_it<Component, ComponentRegistry...> && "Unregistered component.");
         constexpr static std::size_t component_index = meta::index_of<std::remove_cvref_t<Component>, std::tuple<ComponentRegistry...>>::value;
-        sparse_set_t<Component>& storage = std::get<meta::index_of<Component, std::tuple<ComponentRegistry...>>::value>(storage_map);
-        FORGE_ASSERT(storage.contains(e), "[SPARSE GET ASSERTION FAILED] Entity " << e << " is not contained in the sparse storage of component index " << component_index);
+        storage_type<Component>& storage = std::get<meta::index_of<Component, std::tuple<ComponentRegistry...>>::value>(storage_map);
+        FORGE_ASSERT(storage.contains(e), "[SPARSE GET ASSERTION FAILED] Entity " << forge::to_entity(e) << " is not contained in the sparse storage of component index " << component_index);
         storage.replace(e, std::forward<Args>(args)...);
         Component& c = storage.get(e);
         on_update<Component>().publish(e, c);
@@ -225,7 +224,7 @@ class registry {
         static_assert(meta::contains_it<std::remove_cvref_t<Component>, ComponentRegistry...> && "Unregistered component.");
         constexpr static std::size_t component_index = meta::index_of<std::remove_cvref_t<Component>, std::tuple<ComponentRegistry...>>::value;
         auto& storage = std::get<component_index>(self.storage_map);
-        FORGE_ASSERT(storage.contains(e), "[SPARSE GET ASSERTION FAILED] Entity " << e << " is not contained in the sparse storage of component index " << component_index);
+        FORGE_ASSERT(storage.contains(e), "[SPARSE GET ASSERTION FAILED] Entity " << forge::to_entity(e) << " is not contained in the sparse storage of component index " << component_index);
         if constexpr (std::is_const_v<Component>)
             return std::as_const(storage.get(e));
         else

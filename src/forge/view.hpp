@@ -6,132 +6,83 @@
 #include "algorithms.hpp"
 #include "storage.hpp"
 namespace forge {
-using namespace forge::algorithms;
+using namespace algorithms;
+
 namespace _INTERNAL::TAGS {
 struct deref_row_wise_tag;
 struct deref_column_wise_tag;
 }  // namespace _INTERNAL::TAGS
 
-template <typename T>
-class basic_view_iterator {
-   public:
-    using iterator_category = std::forward_iterator_tag;
-    using difference_type = std::ptrdiff_t;
-    using value_type = T;
-    using pointer = T*;
-    using reference = T&;
-    using const_pointer = const T*;
-    using const_reference = const T&;
-
-   private:
-    pointer ptr;
-
-   public:
-    basic_view_iterator(pointer p) : ptr{p} {};
-
-    friend bool operator==(const basic_view_iterator& a, const basic_view_iterator& b) {
-        return a.ptr == b.ptr;
-    }
-    friend bool operator!=(const basic_view_iterator& a, const basic_view_iterator& b) {
-        return !(a == b);
-    }
-
-    basic_view_iterator& operator++() {
-        this->ptr++;
-        return *this;
-    }
-    basic_view_iterator operator++(int) {
-        auto old = *this;
-        ++(*this);
-        return old;
-    }
-    reference operator*() const {
-        return *ptr;
-    }
-
-    pointer operator->() const {
-        return ptr;
-    }
-};
-
-template <typename DerefTag, typename BaseIterator, typename Include, typename Exclude>
+template <typename It, typename DerefTag, typename Includes, typename Excludes>
 class view_iterator;
 
-template <typename DerefTag, typename BaseIterator, typename... InclusionPools, typename... ExclusionPools>
-class view_iterator<DerefTag, BaseIterator, std::tuple<InclusionPools...>, std::tuple<ExclusionPools...>> {
-    using iterator_traits = std::iterator_traits<BaseIterator>;
+template <typename It, typename DerefTag, typename... Includes, typename... Excludes>
+class view_iterator<It, DerefTag, std::tuple<Includes...>, std::tuple<Excludes...>> {
+    using iterator_traits = std::iterator_traits<It>;
     using value_type = iterator_traits::value_type;
-    using iterator = BaseIterator;
-    using entity_type = std::remove_cvref_t<value_type>;
-
-    using inclusion_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<InclusionPools>, entity_type>&...>;
-
-    using exclusion_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<ExclusionPools>, entity_type>&...>;
-    iterator iter{nullptr};
-    iterator end_iter{nullptr};
-    inclusion_type inclusions;
-    exclusion_type exclusions;
+    using Get = std::tuple<forge::storage::pool_storage<value_type, std::remove_cvref_t<Includes>>&...>;
+    using Exclude = std::tuple<forge::storage::pool_storage<value_type, std::remove_cvref_t<Excludes>>&...>;
+    Get gets;
+    Exclude excludes;
+    It it{};
+    It end{};
 
    public:
-    view_iterator(const std::size_t driving_index, const std::size_t row_index, inclusion_type& ipool, exclusion_type& expool)
-        : inclusions{ipool},
-          exclusions{expool} {
-        meta::_INTERNAL::homogeneous_template_tuple_get(driving_index, ipool, [this, row_index](auto&& arg) {
-            this->iter = BaseIterator{std::to_address(arg.begin() + row_index)};
-            this->end_iter = BaseIterator{std::to_address(arg.end())};
+    view_iterator(const std::size_t row_index, Get& gets, Exclude& ex)
+        : gets{gets}, excludes{ex} {
+        meta::_INTERNAL::homogeneous_template_tuple_get(containers::get_driving_index(gets), gets, [this, row_index](auto&& arg) {
+            this->it = arg.begin() + row_index;
+            this->end = arg.end();
         });
     };
-    view_iterator& operator++() {
-        this->iter++;
-        if constexpr (sizeof...(InclusionPools) == 1 &&
-                      sizeof...(ExclusionPools) == 0)
-            return *this;
 
-        while (this->iter != this->end_iter && (!containers::contains_in_every(*this->iter, inclusions) ||
-                                                !containers::contains_in_none(*this->iter, exclusions))) {
-            this->iter++;
+    view_iterator& operator++() {
+        this->it++;
+        if constexpr (sizeof...(Includes) == 1 &&
+                      sizeof...(Excludes) == 0)
+            return *this;
+        while (this->it != this->end && (!containers::contains_in_every(*this->it, gets) ||
+                                         !containers::contains_in_none(*this->it, excludes))) {
+            this->it++;
         }
         return *this;
     }
-
     view_iterator operator++(int) {
         auto old = *this;
         ++(*this);
         return old;
     }
-
     value_type get_value() const {
-        return *this->iter;
+        return *this->it;
     }
 
     decltype(auto) operator*() {
         if constexpr (std::is_same_v<DerefTag, _INTERNAL::TAGS::deref_column_wise_tag>) {
             return [this]<std::size_t... Is>(std::index_sequence<Is...>) {
-                return std::forward_as_tuple(containers::pool_of<Is, value_type, InclusionPools...>(*this->iter, this->inclusions)...);
-            }(std::make_index_sequence<sizeof...(InclusionPools)>{});
+                return std::forward_as_tuple(containers::pool_of<Is, value_type, Includes...>(*this->it, this->gets)...);
+            }(std::make_index_sequence<sizeof...(Includes)>{});
         } else if constexpr (std::is_same_v<DerefTag, _INTERNAL::TAGS::deref_row_wise_tag>) {
             return this->get_value();
         }
     }
 
     friend bool operator==(const view_iterator& a, const view_iterator& b) {
-        return a.iter == b.iter;
+        return a.it == b.it;
     }
     friend bool operator!=(const view_iterator& a, const view_iterator& b) {
         return !(a == b);
     }
 };
-
 template <typename Entity, typename UniversalPool, typename Includes, typename Excludes>
 class basic_view_container;
 
 template <typename Entity, typename UniversalPool, typename... Includes, typename... Excludes>
 class basic_view_container<Entity, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...>> {
     using value_type = Entity;
-    using iterator = view_iterator<_INTERNAL::TAGS::deref_column_wise_tag, basic_view_iterator<Entity>, std::tuple<Includes...>, std::tuple<Excludes...>>;
+    using iterator = view_iterator<sparse_set_iterator<std::vector<Entity>>, _INTERNAL::TAGS::deref_column_wise_tag, std::tuple<Includes...>, std::tuple<Excludes...>>;
 
-    using inclusion_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<Includes>, Entity>&...>;
-    using exclusion_type = std::tuple<forge::storage::sparse_set<std::remove_cvref_t<Excludes>, Entity>&...>;
+    using inclusion_type = std::tuple<forge::storage::pool_storage<Entity, std::remove_cvref_t<Includes>>&...>;
+    using exclusion_type = std::tuple<forge::storage::pool_storage<Entity, std::remove_cvref_t<Excludes>>&...>;
 
    protected:
     inclusion_type inclusions;
@@ -145,16 +96,12 @@ class basic_view_container<Entity, UniversalPool, std::tuple<Includes...>, std::
           driving_index{containers::get_driving_index(containers::subset_of<UniversalPool, Includes...>(pool))} {}
     iterator begin() {
         if (containers::contains_empty(inclusions)) return end();
-        return iterator{this->driving_index, 0,
-                        inclusions,
-                        exclusions};
+        return iterator{0, inclusions, exclusions};
     };
 
     const iterator begin() const {
         if (containers::contains_empty(inclusions)) return end();
-        return iterator{this->driving_index, 0,
-                        inclusions,
-                        exclusions};
+        return iterator{0, inclusions, exclusions};
     };
 
     iterator end() {
@@ -162,7 +109,7 @@ class basic_view_container<Entity, UniversalPool, std::tuple<Includes...>, std::
         meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, inclusions, [&end_index](auto&& arg) {
             end_index = arg.size();
         });
-        return iterator{this->driving_index, end_index, inclusions, exclusions};
+        return iterator{end_index, inclusions, exclusions};
     };
 
     const iterator end() const {
@@ -170,9 +117,7 @@ class basic_view_container<Entity, UniversalPool, std::tuple<Includes...>, std::
         meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, inclusions, [&end_index](auto&& arg) {
             end_index = arg.size();
         });
-        return iterator{this->driving_index, end_index,
-                        inclusions,
-                        exclusions};
+        return iterator{end_index, inclusions, exclusions};
     };
 };
 
@@ -183,7 +128,7 @@ template <typename E, typename UniversalPool, typename... Includes, typename... 
 class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...>>
     : private basic_view_container<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...>> {
     using underlying_container = basic_view_container<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...>>;
-    using iterator = view_iterator<_INTERNAL::TAGS::deref_row_wise_tag, basic_view_iterator<E>, std::tuple<Includes...>, std::tuple<Excludes...>>;
+    using iterator = view_iterator<sparse_set_iterator<std::vector<E>>, _INTERNAL::TAGS::deref_row_wise_tag, std::tuple<Includes...>, std::tuple<Excludes...>>;
 
     template <typename Func, std::size_t... Is>
     void propogate_const_callback(const E e, Func& callback, const std::index_sequence<Is...>) {
@@ -203,7 +148,7 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
 
     const iterator begin() const {
         if (containers::contains_empty(this->inclusions)) return end();
-        return iterator{this->driving_index, 0, this->inclusions, this->exclusions};
+        return iterator{0, this->inclusions, this->exclusions};
     };
 
     const iterator end() const {
@@ -211,12 +156,12 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
         meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->inclusions, [&end_index](auto&& arg) {
             end_index = arg.size();
         });
-        return iterator{this->driving_index, end_index, this->inclusions, this->exclusions};
+        return iterator{end_index, this->inclusions, this->exclusions};
     };
 
     iterator begin() {
         if (containers::contains_empty(this->inclusions)) return end();
-        return iterator{this->driving_index, 0, this->inclusions, this->exclusions};
+        return iterator{0, this->inclusions, this->exclusions};
     };
 
     iterator end() {
@@ -224,7 +169,7 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
         meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->inclusions, [&end_index](auto&& arg) {
             end_index = arg.size();
         });
-        return iterator{this->driving_index, end_index, this->inclusions, this->exclusions};
+        return iterator{end_index, this->inclusions, this->exclusions};
     };
 
     template <typename Func>
@@ -262,5 +207,4 @@ class view_span<E, UniversalPool, std::tuple<Includes...>, std::tuple<>>
         return view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...>>(this->pool_ref);
     };
 };
-
 };  // namespace forge

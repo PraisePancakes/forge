@@ -1,8 +1,9 @@
-#pragma once
 #include "algorithms.hpp"
+#include "config/macro.hpp"
 #include "config/version.hpp"
-#include "entity.hpp"
-#include "generation.hpp"
-#include "meta.hpp"
+#include "entity/entity.hpp"
+#include "entity/generator.hpp"
+#include "entity/sparse_set.hpp"
 #include "registry.hpp"
 #include "storage.hpp"
+#include "view.hpp"

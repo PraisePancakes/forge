@@ -9,11 +9,16 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(doctest)
 
 add_executable(forge_tests
-    test_entities.cpp
-    test_components.cpp
-    test_meta.cpp
-    test_algorithms.cpp
-    test_view.cpp
+   entity_traits.cpp
+   generator.cpp
+   sparse_set.cpp
+   pool_storage.cpp
+   registry.cpp
+   meta.cpp
+   algorithms.cpp
+   view_iterator.cpp
+   sparse_set_iterator.cpp
+   views.cpp
     main.cpp
 )
 

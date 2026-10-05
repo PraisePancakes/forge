@@ -47,7 +47,7 @@ class relaxed_benchmark : public benchmark {
                 for (std::size_t i = 0;
                      i < _config.initial_entities;
                      ++i) {
-                    sink += forge::to_id(world.make());
+                    sink += forge::to_entity(world.make());
                 }
             });
         }
@@ -256,8 +256,7 @@ class relaxed_benchmark : public benchmark {
                               Position& position,
                               Velocity& velocity) {
                     position.x += velocity.x;
-
-                    sink += forge::to_id(e);
+                    sink += forge::to_entity(e);
                 });
             });
         }
