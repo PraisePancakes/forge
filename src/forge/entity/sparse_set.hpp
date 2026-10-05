@@ -244,7 +244,7 @@ class basic_sparse_set {
         std::cout << "]\n";
     };
 
-    virtual ~basic_sparse_set() {
+    ~basic_sparse_set() {
         this->release_pages();
     };
 };
