@@ -18,6 +18,7 @@ add_executable(forge_tests
    algorithms.cpp
    view_iterator.cpp
    sparse_set_iterator.cpp
+   views.cpp
     main.cpp
 )
 

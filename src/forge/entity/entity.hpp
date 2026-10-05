@@ -4,7 +4,9 @@
 #include <cassert>
 #include <cstdint>
 #include <limits>
+#include <sstream>
 #include <string>
+
 namespace forge {
 namespace internal {
 template <typename>
@@ -84,6 +86,20 @@ struct basic_entity_traits {
         assert(l.size() == r.size());
         return l + " " + r;
     }
+
+    template <typename V>
+        requires std::same_as<std::remove_cvref_t<V>, value_type>
+    static std::string to_string(const V value) {
+        std::stringstream ss;
+        ss << "Entity { ";
+#if FORGE_DEBUG_ENTITY
+        ss << "BIT REP : " + to_bit_string(value) << ", ";
+#endif
+        ss << "ID : " + std::to_string(to_entity(value)) << ", ";
+        ss << "VERSION : " + std::to_string(to_version(value));
+        ss << "}";
+        return ss.str();
+    };
 };
 
 template <entity_like T>
@@ -105,6 +121,11 @@ template <typename Entity>
 [[nodiscard]] constexpr entity_traits<Entity>::version_type to_version(const Entity value) noexcept {
     return entity_traits<Entity>::to_version(value);
 };
+
+template <typename Entity>
+[[nodiscard]] std::string to_string(const Entity value) {
+    return entity_traits<Entity>::to_string(value);
+}
 
 struct null_t {
     template <entity_like Entity>

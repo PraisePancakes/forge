@@ -10,7 +10,7 @@
 #include "entity/generator.hpp"
 #include "meta.hpp"
 #include "storage.hpp"
-
+#include "view.hpp"
 namespace forge {
 template <typename... Args>
 class signal {
