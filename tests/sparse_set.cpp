@@ -245,6 +245,55 @@ TEST_CASE("sparse set operator[] returns the entity at its sparse index") {
     CHECK(set[e1] == e1);
     CHECK(set[e2] == e2);
 }
+TEST_CASE("sparse set index_of returns the entity's dense index") {
+    forge::basic_sparse_set<std::uint64_t> set;
+
+    const auto e0 = u64_t::construct(0, 0);
+    const auto e1 = u64_t::construct(1, 0);
+    const auto e2 = u64_t::construct(2, 0);
+
+    set.push(e0);
+    set.push(e1);
+    set.push(e2);
+
+    CHECK(set.index_of(e0) == 0);
+    CHECK(set.index_of(e1) == 1);
+    CHECK(set.index_of(e2) == 2);
+}
+
+TEST_CASE("sparse set index_of follows entities after removal") {
+    forge::basic_sparse_set<std::uint64_t> set;
+
+    const auto e0 = u64_t::construct(0, 0);
+    const auto e1 = u64_t::construct(1, 0);
+    const auto e2 = u64_t::construct(2, 0);
+
+    set.push(e0);
+    set.push(e1);
+    set.push(e2);
+
+    set.remove(e0);
+
+    // e2 was moved from dense index 2 to dense index 0.
+    CHECK(set.index_of(e2) == 0);
+    CHECK(set.index_of(e1) == 1);
+}
+
+TEST_CASE("sparse set index_of works across sparse pages") {
+    forge::basic_sparse_set<std::uint64_t> set;
+
+    const auto e253 = u64_t::construct(253, 0);
+    const auto e254 = u64_t::construct(254, 0);
+    const auto e1024 = u64_t::construct(1024, 0);
+
+    set.push(e253);
+    set.push(e254);
+    set.push(e1024);
+    CHECK(set.index_of(e253) == 0);
+    CHECK(set.index_of(e254) == 1);
+    CHECK(set.index_of(e1024) == 2);
+}
+
 //./build/tests/forge_tests -tc="basic_sparse_set: contains multiple entities"
 TEST_CASE("basic_sparse_set: contains multiple entities") {
     using pool = forge::basic_sparse_set<forge::entity>;

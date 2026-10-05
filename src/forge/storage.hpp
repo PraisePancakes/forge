@@ -9,11 +9,14 @@ class pool_storage : public basic_sparse_set<Entity> {
     using underlying_container = basic_sparse_set<Entity>;
     using Traits = entity_traits<Entity>;
     std::vector<Component> pool;
+    std::vector<Component*> pages;
+    
+    
 
    public:
     using value_type = Component;
 
-    pool_storage() : pool{} {};
+    pool_storage() : pool{}, pages{} {};
     template <typename... Args>
     void emplace(const Entity e, Args&&... args) {
         FORGE_ASSERT(!this->contains(e), "Cannot emplace on existing component");

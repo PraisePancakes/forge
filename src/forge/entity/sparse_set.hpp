@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "entity.hpp"
-#define PAGE_SIZE 1024
+
 namespace forge {
 
 template <typename Cont>
@@ -84,10 +84,10 @@ class basic_sparse_set {
     };
 
     [[nodiscard]] auto page_of(const std::size_t pos) const noexcept {
-        return static_cast<std::size_t>(pos / PAGE_SIZE);
+        return static_cast<std::size_t>(pos / Traits::page_size);
     }
     [[nodiscard]] auto offset_of(const std::size_t pos) const noexcept {
-        return static_cast<std::size_t>(pos % PAGE_SIZE);
+        return static_cast<std::size_t>(pos % Traits::page_size);
     }
     [[nodiscard]] auto get(const Entity e) noexcept {
         auto pos = pos_of(e);
@@ -131,8 +131,8 @@ class basic_sparse_set {
 
     void release_pages() noexcept {
         for (auto alloc{dense.get_allocator()}; auto&& p : sparse) {
-            std::destroy(p, p + PAGE_SIZE);
-            alloc_traits::deallocate(alloc, p, PAGE_SIZE);
+            std::destroy(p, p + Traits::page_size);
+            alloc_traits::deallocate(alloc, p, Traits::page_size);
             p = nullptr;
         };
     };
@@ -145,8 +145,8 @@ class basic_sparse_set {
         if (!sparse[page]) {
             constexpr typename Traits::value_type def = forge::null;
             auto page_alloc = dense.get_allocator();
-            sparse[page] = alloc_traits::allocate(page_alloc, PAGE_SIZE);
-            std::uninitialized_fill(sparse[page], sparse[page] + PAGE_SIZE, def);
+            sparse[page] = alloc_traits::allocate(page_alloc, Traits::page_size);
+            std::uninitialized_fill(sparse[page], sparse[page] + Traits::page_size, def);
         }
 
         return sparse[page][offset_of(pos)];
@@ -170,6 +170,7 @@ class basic_sparse_set {
         return sparse_set_iterator{dense, static_cast<difference_type>(pos)};
     };
 
+   public:
     [[nodiscard]] auto& index_of(const Entity e) noexcept {
         return get_ref(e);
     };
@@ -178,14 +179,13 @@ class basic_sparse_set {
         return get_ref(e);
     };
 
-   public:
     iterator push(const Entity e) noexcept {
         return emplace(e);
     }
 
     void reserve(const std::size_t n) noexcept {
         dense.reserve(n);
-        sparse.reserve((n + PAGE_SIZE - 1) / PAGE_SIZE);
+        sparse.reserve((n + Traits::page_size - 1) / Traits::page_size);
     }
     // must contain an entity of the same identifier and version
     [[nodiscard]] bool contains(const Entity e) const noexcept {
@@ -216,7 +216,35 @@ class basic_sparse_set {
         return this->dense.size();
     }
 
-    ~basic_sparse_set() {
+    void print() {
+        std::cout << "SPARSE\n";
+        std::cout << "[";
+        std::size_t index = 0;
+
+        for (auto* p : this->sparse) {
+            if (p) {
+                for (std::size_t i = 0; i < Traits::page_size; ++i, ++index) {
+                    std::cout << index << ":" << p[i];
+
+                    if (index + 1 < this->sparse.size() * Traits::page_size) {
+                        std::cout << ",";
+                    }
+                }
+            } else {
+                index += Traits::page_size;
+            }
+        }
+        std::cout << "]\n";
+        std::cout << "DENSE\n";
+        std::cout << "[";
+        for (int i = 0; i < dense.size(); i++) {
+            std::cout << dense[i];
+            if (i < dense.size() - 1) std::cout << ",";
+        }
+        std::cout << "]\n";
+    };
+
+    virtual ~basic_sparse_set() {
         this->release_pages();
     };
 };
