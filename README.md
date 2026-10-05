@@ -20,7 +20,6 @@ If you’re interested in learning more, be sure to check out `EnTT` [here](http
 
 ```cpp
 #include <forge/forge.hpp>
-
 int main() {
 #if 1
     // define your registry with a list of components
@@ -28,21 +27,20 @@ int main() {
 
     // signals
     world.on_construct<int>().connect([](forge::entity e, int v) {
-        std::cout << "triggered construction on entity " << e << " with int [" << v << "]" << std::endl;
+        std::cout << "triggered construction on entity " << forge::to_string(e) << " with int [" << v << "]" << std::endl;
     });
 
     world.on_destroy<std::string>().connect([](forge::entity e, std::string v) {
-        std::cout << "triggered destruction on entity " << e << " with std::string [" << v << "]" << std::endl;
+        std::cout << "triggered destruction on entity " << forge::to_string(e) << " with std::string [" << v << "]" << std::endl;
     });
 
     // NOTE on_update only works with forge::registry<Ts...>::replace_component<T> currently
     world.on_update<int>().connect([](forge::entity e, int v) {
-        std::cout << "triggered update on entity " << e << " with new integer [" << v << "]" << std::endl;
+        std::cout << "triggered update on entity " << forge::to_string(e) << " with new integer [" << v << "]" << std::endl;
     });
 
     // make an entity
     forge::entity e = world.make();
-
     // compose singularly
     world.add_component<int>(e, 12);
     world.add_component<std::string>(e, "string");
@@ -82,7 +80,7 @@ int main() {
 
     // destroy
     std::cout << "=== Before destroy===" << std::endl;
-    std::cout << e << std::endl;
+    std::cout << forge::to_string(e) << std::endl;
     std::cout << "is alive : " << std::boolalpha << world.is_alive(e) << std::endl;  // true
     world.destroy(e);
     std::cout << "=== After destroy===" << std::endl;
@@ -90,7 +88,7 @@ int main() {
 
     for (int i = 0; i < 10; i++) {
         auto e = world.make();
-        std::cout << "making entity " << e << std::endl;
+        std::cout << "making entity " << forge::to_string(e) << std::endl;
         if (i % 2 == 0)
             world.add_component<int, std::string>(e, i, "even");
         else
@@ -107,21 +105,21 @@ int main() {
 
     std::cout << "=== Make an extendable view ===" << std::endl;
     immutable_view.each([](const forge::entity e, auto& i, auto& s) {
-        std::cout << e << " has Int component: " << i << ", String component: " << s << std::endl;
+        std::cout << forge::to_string(e) << " has Int component: " << i << ", String component: " << s << std::endl;
     });
 
     std::cout << "=== Make a mutable view ===" << std::endl;
     auto mutable_view = world.view<int, std::string>();
     mutable_view.each([&world](const forge::entity e, auto& i, auto& s) {
-        if (forge::to_id(e) == 0) {
+        if (forge::to_entity(e) == 0) {
             s = "Not even";
-            std::cout << e << " Int component: " << i << " String component: " << world.get_component<std::string>(e) << std::endl;
+            std::cout << forge::to_string(e) << " Int component: " << i << " String component: " << world.get_component<std::string>(e) << std::endl;
         }
     });
 
     std::cout << "=== View with iterator ===" << std::endl;
     for (const auto e : mutable_view) {
-        std::cout << e << std::endl;
+        std::cout << forge::to_string(e) << std::endl;
     }
 
     std::cout << "===  Each with Mutable iterator ===" << std::endl;
@@ -130,7 +128,7 @@ int main() {
     };
 
     mutable_view.each([](const forge::entity e, auto& i, auto& s) {
-        std::cout << e << " Int component: " << i << " String component: " << s << std::endl;
+        std::cout << forge::to_string(e) << " Int component: " << i << " String component: " << s << std::endl;
     });
 
     std::cout << "=== View with exclusion ===" << std::endl;
@@ -156,7 +154,7 @@ int main() {
 
     for (const auto e : ex_view) {
         auto [i, c] = world.get_component<int, char>(e);
-        std::cout << e
+        std::cout << forge::to_string(e)
                   << " -> int: " << i
                   << ", char: " << c
                   << std::endl;
@@ -164,7 +162,6 @@ int main() {
 #endif
     return 0;
 }
-
 
 ```
 **OUTPUT:**
