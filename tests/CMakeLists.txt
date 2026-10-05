@@ -16,6 +16,8 @@ add_executable(forge_tests
    registry.cpp
    meta.cpp
    algorithms.cpp
+   view_iterator.cpp
+   sparse_set_iterator.cpp
     main.cpp
 )
 

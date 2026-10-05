@@ -14,12 +14,14 @@ struct sparse_set_iterator {
     using difference_type = Cont::difference_type;
     using iterator_category = std::random_access_iterator_tag;
     const Cont* dense;
-    difference_type it;
+    difference_type it{0};
 
     constexpr sparse_set_iterator() noexcept
         : dense{}, it{} {};
     constexpr sparse_set_iterator(const Cont& c, const difference_type i)
         : dense{&c}, it{i} {};
+    constexpr sparse_set_iterator(const sparse_set_iterator& o)
+        : dense{o.dense}, it{o.it} {};
 
     constexpr sparse_set_iterator& operator++() noexcept {
         return (++it, *this);
@@ -44,7 +46,7 @@ struct sparse_set_iterator {
         sparse_set_iterator c = *this;
         return (c += v);
     }
-    constexpr sparse_set_iterator& operator-=(const difference_type v) const noexcept {
+    constexpr sparse_set_iterator& operator-=(const difference_type v) noexcept {
         return (*this += -v);
     }
     constexpr sparse_set_iterator operator-(const difference_type v) const noexcept {
@@ -98,6 +100,7 @@ class basic_sparse_set {
         return (page < sparse.size() && sparse[page]) ? sparse[page] + offset_of(pos) : nullptr;
     };
 
+    // gets position of entity in sparse set, which holds the lookup position in dense
     [[nodiscard]] auto& get_ref(const Entity e) noexcept {
         auto* p = get(e);
         FORGE_ASSERT(p, "Invalid reference to null page offset");
@@ -149,7 +152,7 @@ class basic_sparse_set {
         return sparse[page][offset_of(pos)];
     };
 
-   protected:
+   public:
     using allocator_type = Allocator;
     using entity_type = Traits::value_type;
     using version_type = Traits::version_type;
@@ -158,12 +161,13 @@ class basic_sparse_set {
     using pointer = dense_type::const_pointer;
     using iterator = sparse_set_iterator<dense_type>;
 
+   protected:
     iterator emplace(const Entity e) noexcept {
         auto pos = dense.size();
         auto& elem = assure_minimum(e);
         elem = pos;
         dense.push_back(e);
-        return sparse_set_iterator{dense, static_cast<difference_type>(++pos)};
+        return sparse_set_iterator{dense, static_cast<difference_type>(pos)};
     };
 
     [[nodiscard]] auto& index_of(const Entity e) noexcept {
@@ -189,6 +193,7 @@ class basic_sparse_set {
         return (p && *p != null && (forge::to_entity(dense[*p]) == forge::to_entity(e)) && (forge::to_version(dense[*p]) == forge::to_version(e)));
     };
 
+    // lookup of entity in dense using get_ref(e) which gets its dense index from sparse
     [[nodiscard]] auto& operator[](const Entity e) noexcept {
         return dense[get_ref(e)];
     };
@@ -196,11 +201,13 @@ class basic_sparse_set {
     void remove(const Entity e) noexcept {
         swap_and_pop(e);
     };
-
+    // ideally any extended type from this container should define what they want to iterate,
+    // they can either iterate the entities or the extended dense items
+    // iterator to beginning of dense entities
     iterator begin() {
         return iterator{this->dense, 0};
     };
-
+    // iterator to end of dense entities
     iterator end() {
         return iterator{this->dense, static_cast<difference_type>(this->dense.size())};
     };

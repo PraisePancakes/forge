@@ -245,6 +245,24 @@ TEST_CASE("sparse set operator[] returns the entity at its sparse index") {
     CHECK(set[e1] == e1);
     CHECK(set[e2] == e2);
 }
+//./build/tests/forge_tests -tc="basic_sparse_set: contains multiple entities"
+TEST_CASE("basic_sparse_set: contains multiple entities") {
+    using pool = forge::basic_sparse_set<forge::entity>;
+
+    pool entities;
+
+    const auto e0 = u64_t::construct(0, 0);
+    const auto e1 = u64_t::construct(1, 0);
+    const auto e2 = u64_t::construct(2, 0);
+
+    entities.push(e0);
+    entities.push(e1);
+    entities.push(e2);
+
+    CHECK(entities.contains(e0));
+    CHECK(entities.contains(e1));
+    CHECK(entities.contains(e2));
+}
 
 TEST_CASE("sparse set operator[] follows entities after removal") {
     forge::basic_sparse_set<std::uint64_t> set;

@@ -2,6 +2,7 @@
 #include "entity/sparse_set.hpp"
 
 namespace forge::storage {
+
 template <typename Entity, typename Component>
 class pool_storage : public basic_sparse_set<Entity> {
     using underlying_container = basic_sparse_set<Entity>;
@@ -10,7 +11,7 @@ class pool_storage : public basic_sparse_set<Entity> {
 
    public:
     using value_type = Component;
-    using iterator = underlying_container::iterator;
+
     pool_storage() : pool{} {};
     template <typename... Args>
     void emplace(const Entity e, Args&&... args) {
@@ -23,10 +24,10 @@ class pool_storage : public basic_sparse_set<Entity> {
     void replace(const Entity e, Args&&... args) {
         FORGE_ASSERT(this->contains(e), "Cannot replace component that does not exist");
         const auto index = this->index_of(e);
-
         std::destroy_at(std::addressof(pool[index]));
         std::construct_at(std::addressof(pool[index]), std::forward<Args>(args)...);
     }
+
     void reserve(std::size_t n) {
         this->reserve(n);
         pool.reserve(n);
@@ -59,4 +60,7 @@ class pool_storage : public basic_sparse_set<Entity> {
 
     ~pool_storage() {};
 };
+
+
+
 };  // namespace forge::storage
