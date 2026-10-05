@@ -181,5 +181,84 @@ TEST_SUITE("meta") {
 
         CHECK(result == 3);
     }
+    TEST_CASE("index_of_value_type works with storage pools") {
+        using pools = std::tuple<
+            forge::storage::pool_storage<forge::entity, int>,
+            forge::storage::pool_storage<forge::entity, char>,
+            forge::storage::pool_storage<forge::entity, float>>;
 
+        CHECK(forge::meta::index_of_value_type<int, pools>::value == 0);
+        CHECK(forge::meta::index_of_value_type<char, pools>::value == 1);
+        CHECK(forge::meta::index_of_value_type<float, pools>::value == 2);
+    }
+    TEST_CASE("is_unique_set supports storage pools") {
+        using pools = std::tuple<
+            forge::storage::pool_storage<forge::entity, int>,
+            forge::storage::pool_storage<forge::entity, char>,
+            forge::storage::pool_storage<forge::entity, float>>;
+
+        CHECK(forge::meta::is_unique_set_v<pools>);
+
+        using duplicate_pools = std::tuple<
+            forge::storage::pool_storage<forge::entity, int>,
+            forge::storage::pool_storage<forge::entity, char>,
+            forge::storage::pool_storage<forge::entity, int>>;
+
+        CHECK_FALSE(forge::meta::is_unique_set_v<duplicate_pools>);
+    }
+
+    TEST_CASE("homogeneous_template_tuple_get selects storage pool") {
+        using pool_tuple = std::tuple<
+            forge::storage::pool_storage<forge::entity, int>,
+            forge::storage::pool_storage<forge::entity, char>,
+            forge::storage::pool_storage<forge::entity, float>>;
+
+        pool_tuple pools;
+
+        auto e0 = forge::entity_traits<forge::entity>::construct(0, 0);
+        auto e1 = forge::entity_traits<forge::entity>::construct(1, 0);
+
+        std::get<0>(pools).emplace(e0, 42);
+        std::get<1>(pools).emplace(e0, 'a');
+        std::get<1>(pools).emplace(e1, 'b');
+        std::get<2>(pools).emplace(e0, 3.14f);
+
+        std::size_t result = 0;
+
+        forge::meta::_INTERNAL::homogeneous_template_tuple_get(
+            0, pools, [&](auto& pool) {
+                result = pool.size();
+            });
+        CHECK(result == 1);
+
+        forge::meta::_INTERNAL::homogeneous_template_tuple_get(
+            1, pools, [&](auto& pool) {
+                result = pool.size();
+            });
+        CHECK(result == 2);
+
+        forge::meta::_INTERNAL::homogeneous_template_tuple_get(
+            2, pools, [&](auto& pool) {
+                result = pool.size();
+            });
+        CHECK(result == 1);
+    }
+
+    TEST_CASE("homogeneous_template_tuple_get passes storage pool by reference") {
+        using pool_tuple = std::tuple<
+            forge::storage::pool_storage<forge::entity, int>,
+            forge::storage::pool_storage<forge::entity, char>>;
+
+        pool_tuple pools;
+        auto e = forge::entity_traits<forge::entity>::construct(12, 3);
+        forge::meta::_INTERNAL::homogeneous_template_tuple_get(
+            0, pools, [&](auto& pool) {
+                pool.emplace(e, 123);
+
+                CHECK(pool.get(e) == 123);
+            });
+
+        CHECK(std::get<0>(pools).size() == 1);
+        CHECK(std::get<0>(pools).get(e) == 123);
+    }
 }  // TEST_SUITE
