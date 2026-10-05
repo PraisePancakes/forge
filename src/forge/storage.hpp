@@ -3,8 +3,9 @@
 
 namespace forge::storage {
 
-template <typename Entity, typename Component>
+template <typename Entity, typename Component, typename Alloc = std::allocator<Component>>
 class pool_storage : public basic_sparse_set<Entity> {
+    using alloc_traits = std::allocator_traits<Alloc>;
     using underlying_container = basic_sparse_set<Entity>;
     using Traits = entity_traits<Entity>;
     std::vector<Component> pool;
@@ -29,7 +30,7 @@ class pool_storage : public basic_sparse_set<Entity> {
     }
 
     void reserve(std::size_t n) {
-        this->reserve(n);
+        underlying_container::reserve(n);
         pool.reserve(n);
     }
 
@@ -60,7 +61,5 @@ class pool_storage : public basic_sparse_set<Entity> {
 
     ~pool_storage() {};
 };
-
-
 
 };  // namespace forge::storage

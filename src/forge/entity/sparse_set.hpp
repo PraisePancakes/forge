@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "entity.hpp"
-#define PAGE_SIZE 256
+#define PAGE_SIZE 1024
 namespace forge {
 
 template <typename Cont>
@@ -184,8 +184,8 @@ class basic_sparse_set {
     }
 
     void reserve(const std::size_t n) noexcept {
-        this->dense.reserve(n);
-        this->sparse.reserve(n % PAGE_SIZE);
+        dense.reserve(n);
+        sparse.reserve((n + PAGE_SIZE - 1) / PAGE_SIZE);
     }
     // must contain an entity of the same identifier and version
     [[nodiscard]] bool contains(const Entity e) const noexcept {
@@ -217,7 +217,7 @@ class basic_sparse_set {
     }
 
     ~basic_sparse_set() {
-        release_pages();
-    }
+        this->release_pages();
+    };
 };
 };  // namespace forge
