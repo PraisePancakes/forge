@@ -32,7 +32,7 @@ target_include_directories(${PROJECT_NAME}
 )
 target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)
 
-option(FORGE_BUILD_DEV "Build the developement bed" ON)
+option(FORGE_BUILD_DEV "Build the developement bed" OFF)
 if(FORGE_BUILD_DEV)
     option(FORGE_BUILD_EXAMPLES "Build Forge examples" ON)
     option(FORGE_BUILD_TESTS "Build Forge tests" ON)
