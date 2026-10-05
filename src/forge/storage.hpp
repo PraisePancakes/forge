@@ -9,6 +9,8 @@ class pool_storage : public basic_sparse_set<Entity> {
     std::vector<Component> pool;
 
    public:
+    using value_type = Component;
+    using iterator = underlying_container::iterator;
     pool_storage() : pool{} {};
     template <typename... Args>
     void emplace(const Entity e, Args&&... args) {

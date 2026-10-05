@@ -51,6 +51,9 @@ struct sparse_set_iterator {
         sparse_set_iterator c = *this;
         return (c -= v);
     }
+    [[nodiscard]] constexpr pointer operator->() const noexcept {
+        return std::addressof(operator[](0));
+    }
     [[nodiscard]] constexpr reference operator[](const difference_type v) const noexcept {
         return (*dense)[static_cast<Cont::size_type>(it + v)];
     }
@@ -153,8 +156,9 @@ class basic_sparse_set {
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
     using pointer = dense_type::const_pointer;
+    using iterator = sparse_set_iterator<dense_type>;
 
-    sparse_set_iterator<dense_type> emplace(const Entity e) noexcept {
+    iterator emplace(const Entity e) noexcept {
         auto pos = dense.size();
         auto& elem = assure_minimum(e);
         elem = pos;
@@ -171,7 +175,7 @@ class basic_sparse_set {
     };
 
    public:
-    sparse_set_iterator<dense_type> push(const Entity e) noexcept {
+    iterator push(const Entity e) noexcept {
         return emplace(e);
     }
 
@@ -193,12 +197,12 @@ class basic_sparse_set {
         swap_and_pop(e);
     };
 
-    sparse_set_iterator<dense_type> begin() {
-        return sparse_set_iterator<dense_type>{this->dense, 0};
+    iterator begin() {
+        return iterator{this->dense, 0};
     };
 
-    sparse_set_iterator<dense_type> end() {
-        return sparse_set_iterator<dense_type>{this->dense, static_cast<difference_type>(this->dense.size())};
+    iterator end() {
+        return iterator{this->dense, static_cast<difference_type>(this->dense.size())};
     };
 
     [[nodiscard]] std::size_t size() const noexcept {

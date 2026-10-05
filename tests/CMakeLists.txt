@@ -14,6 +14,8 @@ add_executable(forge_tests
    sparse_set.cpp
    pool_storage.cpp
    registry.cpp
+   meta.cpp
+   algorithms.cpp
     main.cpp
 )
 
