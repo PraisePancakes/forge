@@ -15,7 +15,21 @@ TEST_SUITE("view") {
         int_pool,
         char_pool,
         float_pool>;
+    namespace {
+    struct Position {
+        float x{};
+        float y{};
+    };
 
+    struct Velocity {
+        float x{};
+        float y{};
+    };
+
+    struct Tag {
+        int value{};
+    };
+    }  // namespace
     TEST_CASE("view iterates entities having all included components") {
         generator gen;
 
@@ -490,5 +504,136 @@ TEST_SUITE("view") {
             CHECK(i == 42);
             CHECK(c == 'x');
         });
+    }
+
+    TEST_SUITE("view::const correctness") {
+        using world_t = forge::registry<Position, Velocity, Tag>;
+
+        TEST_CASE("mutable view provides mutable component references") {
+            world_t world;
+
+            auto e = world.make();
+
+            world.add_component<Position, Velocity, Tag>(
+                e,
+                Position{10.0f, 20.0f},
+                Velocity{1.0f, 2.0f},
+                Tag{42});
+
+            world.view<Position, Velocity, Tag>().each(
+                [](Position& p, Velocity& v, Tag& t) {
+                    static_assert(std::is_same_v<decltype(p), Position&>);
+                    static_assert(std::is_same_v<decltype(v), Velocity&>);
+                    static_assert(std::is_same_v<decltype(t), Tag&>);
+
+                    p.x = 100.0f;
+                    v.x = 50.0f;
+                    t.value = 99;
+                });
+
+            CHECK(world.get_component<Position>(e).x == 100.0f);
+            CHECK(world.get_component<Velocity>(e).x == 50.0f);
+            CHECK(world.get_component<Tag>(e).value == 99);
+        }
+
+        TEST_CASE("const view provides const component references") {
+            world_t world;
+
+            auto e = world.make();
+
+            world.add_component<Position, Velocity, Tag>(
+                e,
+                Position{10.0f, 20.0f},
+                Velocity{1.0f, 2.0f},
+                Tag{42});
+
+            world.view<const Position, const Velocity, const Tag>().each(
+                [](const Position& p, const Velocity& v, const Tag& t) {
+                    static_assert(
+                        std::is_same_v<decltype(p), const Position&>);
+
+                    static_assert(
+                        std::is_same_v<decltype(v), const Velocity&>);
+
+                    static_assert(
+                        std::is_same_v<decltype(t), const Tag&>);
+
+                    CHECK(p.x == 10.0f);
+                    CHECK(v.x == 1.0f);
+                    CHECK(t.value == 42);
+                });
+        }
+
+        TEST_CASE("const and mutable components can be mixed") {
+            world_t world;
+
+            auto e = world.make();
+
+            world.add_component<Position, Velocity, Tag>(
+                e,
+                Position{10.0f, 20.0f},
+                Velocity{1.0f, 2.0f},
+                Tag{42});
+
+            world.view<const Position, Velocity, const Tag>().each(
+                [](const Position& p, Velocity& v, const Tag& t) {
+                    CHECK(p.x == 10.0f);
+                    CHECK(t.value == 42);
+
+                    v.x = 100.0f;
+                });
+
+            CHECK(world.get_component<Position>(e).x == 10.0f);
+            CHECK(world.get_component<Velocity>(e).x == 100.0f);
+            CHECK(world.get_component<Tag>(e).value == 42);
+        }
+
+        TEST_CASE("const view does not permit mutable callback") {
+            world_t world;
+            auto e = world.make();
+
+            world.add_component<Position>(
+                e,
+                Position{10.0f, 20.0f});
+
+            // This should NOT compile:
+            //
+            world.view<const Position>().each(
+                [](const Position& p) {
+                    int x = p.x;
+                });
+            //
+            // The important part of this test is that the callback
+            // isn't considered invocable with const Position&.
+            CHECK(world.get_component<Position>(e).x == 10.0f);
+        }
+
+        TEST_CASE("const view can still receive entity") {
+            world_t world;
+
+            auto e = world.make();
+
+            world.add_component<Position>(
+                e,
+                Position{10.0f, 20.0f});
+
+            bool called = false;
+
+            world.view<const Position>().each(
+                [&](forge::entity entity, const Position& p) {
+                    static_assert(
+                        std::is_same_v<decltype(entity), forge::entity>);
+
+                    static_assert(
+                        std::is_same_v<decltype(p), const Position&>);
+
+                    CHECK(entity == e);
+                    CHECK(p.x == 10.0f);
+
+                    called = true;
+                });
+
+            CHECK(called);
+        }
     }
 }

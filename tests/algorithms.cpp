@@ -305,7 +305,6 @@ TEST_SUITE("algorithms::containers") {
         auto& c = forge::algorithms::containers::pool_of<1, entity, const int, char>(e, pools);
 
         static_assert(std::is_same_v<decltype(i), const int&>);
-
         static_assert(std::is_same_v<decltype(c), char&>);
 
         CHECK(i == 42);

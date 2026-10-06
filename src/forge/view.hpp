@@ -131,12 +131,15 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
     using iterator = view_iterator<sparse_set_iterator<std::vector<E>>, _INTERNAL::TAGS::deref_row_wise_tag, std::tuple<Includes...>, std::tuple<Excludes...>>;
 
     template <typename Func, std::size_t... Is>
-    void propogate_const_callback(const E e, Func& callback, const std::index_sequence<Is...>) {
+    void propogate_const_callback(const E e, Func&& callback, const std::index_sequence<Is...>) {
+        static_assert(std::is_invocable_v<Func, E, decltype(containers::pool_of<Is, E, Includes...>(e, this->inclusions))...> ||
+                          std::is_invocable_v<Func, decltype(containers::pool_of<Is, E, Includes...>(e, this->inclusions))...>,
+                      "view::each callback does not match component arguments");
         if constexpr (std::is_invocable_v<Func, E, decltype(containers::pool_of<Is, E, Includes...>(e, this->inclusions))...>) {
             callback(e, containers::pool_of<Is, E, Includes...>(e, this->inclusions)...);
         } else if constexpr (std::is_invocable_v<Func, decltype(containers::pool_of<Is, E, Includes...>(e, this->inclusions))...>) {
             callback(containers::pool_of<Is, E, Includes...>(e, this->inclusions)...);
-        }
+        };
     }
 
    public:
@@ -178,13 +181,13 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
             // native iteration
             auto& pool = std::get<0>(this->inclusions);
             for (auto& e : pool) {
-                this->propogate_const_callback(e, f, std::make_index_sequence<1>{});
+                this->propogate_const_callback(e, std::forward<Func>(f), std::make_index_sequence<1>{});
             }
         } else {
             auto it = underlying_container::begin();
             auto last = underlying_container::end();
             for (; it != last; ++it) {
-                this->propogate_const_callback(it.get_value(), f, std::make_index_sequence<sizeof...(Includes)>{});
+                this->propogate_const_callback(it.get_value(), std::forward<Func>(f), std::make_index_sequence<sizeof...(Includes)>{});
             }
         }
     };
