@@ -131,7 +131,7 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
     using iterator = view_iterator<sparse_set_iterator<std::vector<E>>, _INTERNAL::TAGS::deref_row_wise_tag, std::tuple<Includes...>, std::tuple<Excludes...>>;
 
     template <typename Func, std::size_t... Is>
-    void propogae_const_check(const E e, Func&& callback, const std::index_sequence<Is...>)
+    void propogate_const_callback(const E e, Func&& callback, const std::index_sequence<Is...>)
         requires(std::invocable<Func, E, decltype(containers::pool_of<Is, E, Includes...>(e, this -> inclusions))...> ||
                  std::invocable<Func, decltype(containers::pool_of<Is, E, Includes...>(e, this->inclusions))...>)
     {
