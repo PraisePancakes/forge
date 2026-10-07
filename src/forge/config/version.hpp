@@ -3,7 +3,7 @@
 
 #include "macro.hpp"
 
-#define FORGE_VERSION_MAJOR 0
+#define FORGE_VERSION_MAJOR 2
 #define FORGE_VERSION_MINOR 0
 #define FORGE_VERSION_PATCH 0
 
