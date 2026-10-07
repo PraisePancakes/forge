@@ -1,4 +1,5 @@
 #include "algorithms.hpp"
+#include "config/entity_configuration.hpp"
 #include "config/macro.hpp"
 #include "config/version.hpp"
 #include "entity/entity.hpp"
