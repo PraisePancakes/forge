@@ -2,6 +2,41 @@
 #include <iostream>
 #include <tuple>
 namespace forge::meta {
+
+template <typename T>
+struct function_traits;
+
+template <typename R, typename... Args>
+struct function_traits<R(*)(Args...)> {
+    using return_type = R;
+    static constexpr std::size_t arity = sizeof...(Args);
+    using args = std::tuple<Args...>;
+};
+
+template<typename C, typename R, typename... Args>
+struct function_traits<R(C::*)(Args...)> {
+    using return_type = R;
+    static constexpr std::size_t arity = sizeof...(Args);
+    using args = std::tuple<Args...>;
+};
+
+
+template <typename T>
+struct function_traits : public function_traits<decltype(&T::operator())> {};
+
+template <typename C, typename R, typename... Args>
+struct function_traits<R(C::*)(Args...) const> {
+    using return_type = R;
+    static constexpr std::size_t arity = sizeof...(Args);
+    using args = std::tuple<Args...>;
+};
+
+template<typename F, typename...Args>
+struct has_same_args {
+    using Traits = function_traits<F>;
+    constexpr static bool value = std::is_same_v<typename Traits::args, std::tuple<Args...>>;
+};
+
 template <typename T, typename... Ts>
 constexpr static bool contains_it = (std::is_same_v<T, Ts> || ...);
 

@@ -598,10 +598,10 @@ TEST_SUITE("view") {
 
             // This should NOT compile:
             //
-            world.view<const Position>().each(
-                [](const Position& p) {
-                    int x = p.x;
-                });
+            // world.view<const Position>().each(
+            //     [](Position& p) {
+            //         int x = p.x;
+            //     });
             //
             // The important part of this test is that the callback
             // isn't considered invocable with const Position&.
