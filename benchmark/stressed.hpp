@@ -212,13 +212,10 @@ class stress_benchmark : public benchmark {
                 measure_median(
                     "Forge - Movement",
                     [&] {
-                        return std::make_unique<
-                            forge_world>(_config);
+                        return std::make_unique<forge_world>(_config);
                     },
                     [&](std::unique_ptr<forge_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
                             movement_forge(world->registry);
                         }
                     });
@@ -228,13 +225,10 @@ class stress_benchmark : public benchmark {
                 measure_median(
                     "Forge - Health",
                     [&] {
-                        return std::make_unique<
-                            forge_world>(_config);
+                        return std::make_unique<forge_world>(_config);
                     },
                     [&](std::unique_ptr<forge_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
                             health_forge(world->registry);
                         }
                     });
@@ -244,15 +238,11 @@ class stress_benchmark : public benchmark {
                 measure_median(
                     "Forge - Health Read",
                     [&] {
-                        return std::make_unique<
-                            forge_world>(_config);
+                        return std::make_unique<forge_world>(_config);
                     },
                     [&](std::unique_ptr<forge_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
-                            health_read_forge(
-                                world->registry);
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
+                            health_read_forge(world->registry);
                         }
                     });
                 break;
@@ -265,12 +255,8 @@ class stress_benchmark : public benchmark {
                             forge_world>(_config);
                     },
                     [&](std::unique_ptr<forge_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
-                            spawn_forge(
-                                world->registry,
-                                world->entities);
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
+                            spawn_forge(world->registry, world->entities);
                         }
                     });
                 break;
@@ -279,13 +265,10 @@ class stress_benchmark : public benchmark {
                 measure_median(
                     "Forge - Destroy",
                     [&] {
-                        return std::make_unique<
-                            forge_world>(_config);
+                        return std::make_unique<forge_world>(_config);
                     },
                     [&](std::unique_ptr<forge_world>& world) {
-                        destroy_all_forge(
-                            world->registry,
-                            world->entities);
+                        destroy_all_forge(world->registry, world->entities);
                     });
                 break;
 
@@ -293,20 +276,12 @@ class stress_benchmark : public benchmark {
                 measure_median(
                     "Forge - Spawn + Destroy",
                     [&] {
-                        return std::make_unique<
-                            forge_world>(_config);
+                        return std::make_unique<forge_world>(_config);
                     },
                     [&](std::unique_ptr<forge_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
-                            spawn_forge(
-                                world->registry,
-                                world->entities);
-
-                            destroy_forge(
-                                world->registry,
-                                world->entities);
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
+                            spawn_forge(world->registry, world->entities);
+                            destroy_forge(world->registry, world->entities);
                         }
                     });
                 break;
@@ -315,26 +290,14 @@ class stress_benchmark : public benchmark {
                 measure_median(
                     "Forge - Full Game Loop",
                     [&] {
-                        return std::make_unique<
-                            forge_world>(_config);
+                        return std::make_unique<forge_world>(_config);
                     },
                     [&](std::unique_ptr<forge_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
-                            spawn_forge(
-                                world->registry,
-                                world->entities);
-
-                            movement_forge(
-                                world->registry);
-
-                            health_forge(
-                                world->registry);
-
-                            destroy_forge(
-                                world->registry,
-                                world->entities);
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
+                            spawn_forge(world->registry, world->entities);
+                            movement_forge(world->registry);
+                            health_forge(world->registry);
+                            destroy_forge(world->registry, world->entities);
                         }
                     });
                 break;
@@ -350,14 +313,9 @@ class stress_benchmark : public benchmark {
             case scenario::movement:
                 measure_median(
                     "EnTT - Movement",
-                    [&] {
-                        return std::make_unique<
-                            entt_world>(_config);
-                    },
+                    [&] { return std::make_unique<entt_world>(_config); },
                     [&](std::unique_ptr<entt_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
                             movement_entt(world->registry);
                         }
                     });
@@ -366,14 +324,9 @@ class stress_benchmark : public benchmark {
             case scenario::health:
                 measure_median(
                     "EnTT - Health",
-                    [&] {
-                        return std::make_unique<
-                            entt_world>(_config);
-                    },
+                    [&] { return std::make_unique<entt_world>(_config); },
                     [&](std::unique_ptr<entt_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
                             health_entt(world->registry);
                         }
                     });
@@ -382,16 +335,10 @@ class stress_benchmark : public benchmark {
             case scenario::health_read:
                 measure_median(
                     "EnTT - Health Read",
-                    [&] {
-                        return std::make_unique<
-                            entt_world>(_config);
-                    },
+                    [&] { return std::make_unique<entt_world>(_config); },
                     [&](std::unique_ptr<entt_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
-                            health_read_entt(
-                                world->registry);
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
+                            health_read_entt(world->registry);
                         }
                     });
                 break;
@@ -399,17 +346,10 @@ class stress_benchmark : public benchmark {
             case scenario::spawn:
                 measure_median(
                     "EnTT - Spawn",
-                    [&] {
-                        return std::make_unique<
-                            entt_world>(_config);
-                    },
+                    [&] { return std::make_unique<entt_world>(_config); },
                     [&](std::unique_ptr<entt_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
-                            spawn_entt(
-                                world->registry,
-                                world->entities);
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
+                            spawn_entt(world->registry, world->entities);
                         }
                     });
                 break;
@@ -417,35 +357,20 @@ class stress_benchmark : public benchmark {
             case scenario::destroy:
                 measure_median(
                     "EnTT - Destroy",
-                    [&] {
-                        return std::make_unique<
-                            entt_world>(_config);
-                    },
+                    [&] { return std::make_unique<entt_world>(_config); },
                     [&](std::unique_ptr<entt_world>& world) {
-                        destroy_all_entt(
-                            world->registry,
-                            world->entities);
+                        destroy_all_entt(world->registry, world->entities);
                     });
                 break;
 
             case scenario::spawn_destroy:
                 measure_median(
                     "EnTT - Spawn + Destroy",
-                    [&] {
-                        return std::make_unique<
-                            entt_world>(_config);
-                    },
+                    [&] { return std::make_unique<entt_world>(_config); },
                     [&](std::unique_ptr<entt_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
-                            spawn_entt(
-                                world->registry,
-                                world->entities);
-
-                            destroy_entt(
-                                world->registry,
-                                world->entities);
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
+                            spawn_entt(world->registry, world->entities);
+                            destroy_entt(world->registry, world->entities);
                         }
                     });
                 break;
@@ -453,27 +378,13 @@ class stress_benchmark : public benchmark {
             case scenario::full_loop:
                 measure_median(
                     "EnTT - Full Game Loop",
-                    [&] {
-                        return std::make_unique<
-                            entt_world>(_config);
-                    },
+                    [&] { return std::make_unique<entt_world>(_config); },
                     [&](std::unique_ptr<entt_world>& world) {
-                        for (std::size_t frame = 0;
-                             frame < _config.frames;
-                             ++frame) {
-                            spawn_entt(
-                                world->registry,
-                                world->entities);
-
-                            movement_entt(
-                                world->registry);
-
-                            health_entt(
-                                world->registry);
-
-                            destroy_entt(
-                                world->registry,
-                                world->entities);
+                        for (std::size_t frame = 0; frame < _config.frames; ++frame) {
+                            spawn_entt(world->registry, world->entities);
+                            movement_entt(world->registry);
+                            health_entt(world->registry);
+                            destroy_entt(world->registry, world->entities);
                         }
                     });
                 break;
@@ -485,38 +396,20 @@ class stress_benchmark : public benchmark {
     // ============================================================
 
     struct forge_world {
-        forge::registry<
-            Position,
-            Velocity,
-            Health>
-            registry;
-
+        forge::registry<Position, Velocity, Health> registry;
         std::vector<forge::entity> entities;
-
-        explicit forge_world(
-            const configuration& config) {
+        explicit forge_world(const configuration& config) {
             entities.reserve(config.max_entities);
-
-            create_forge_world(
-                registry,
-                entities,
-                config);
+            create_forge_world(registry, entities, config);
         }
     };
 
     struct entt_world {
         entt::registry registry;
-
         std::vector<entt::entity> entities;
-
-        explicit entt_world(
-            const configuration& config) {
+        explicit entt_world(const configuration& config) {
             entities.reserve(config.max_entities);
-
-            create_entt_world(
-                registry,
-                entities,
-                config);
+            create_entt_world(registry, entities, config);
         }
     };
 
@@ -524,32 +417,12 @@ class stress_benchmark : public benchmark {
     // World creation - Forge
     // ============================================================
 
-    static void create_forge_world(
-        forge::registry<
-            Position,
-            Velocity,
-            Health>& world,
-        std::vector<forge::entity>& entities,
-        const configuration& config) {
-        for (std::size_t i = 0;
-             i < config.initial_entities;
-             ++i) {
+    static void create_forge_world(forge::registry<Position, Velocity, Health>& world, std::vector<forge::entity>& entities, const configuration& config) {
+        for (std::size_t i = 0; i < config.initial_entities; ++i) {
             const auto e = world.make();
-
-            world.add_component<Position>(
-                e,
-                static_cast<float>(i),
-                static_cast<float>(i));
-
-            world.add_component<Velocity>(
-                e,
-                1.0f,
-                1.0f);
-
-            world.add_component<Health>(
-                e,
-                100);
-
+            world.add_component<Position>(e, static_cast<float>(i), static_cast<float>(i));
+            world.add_component<Velocity>(e, 1.0f, 1.0f);
+            world.add_component<Health>(e, 100);
             entities.push_back(e);
         }
     }
@@ -558,29 +431,12 @@ class stress_benchmark : public benchmark {
     // World creation - EnTT
     // ============================================================
 
-    static void create_entt_world(
-        entt::registry& world,
-        std::vector<entt::entity>& entities,
-        const configuration& config) {
-        for (std::size_t i = 0;
-             i < config.initial_entities;
-             ++i) {
+    static void create_entt_world(entt::registry& world, std::vector<entt::entity>& entities, const configuration& config) {
+        for (std::size_t i = 0; i < config.initial_entities; ++i) {
             const auto e = world.create();
-
-            world.emplace<Position>(
-                e,
-                static_cast<float>(i),
-                static_cast<float>(i));
-
-            world.emplace<Velocity>(
-                e,
-                1.0f,
-                1.0f);
-
-            world.emplace<Health>(
-                e,
-                100);
-
+            world.emplace<Position>(e, static_cast<float>(i), static_cast<float>(i));
+            world.emplace<Velocity>(e, 1.0f, 1.0f);
+            world.emplace<Health>(e, 100);
             entities.push_back(e);
         }
     }
@@ -590,30 +446,13 @@ class stress_benchmark : public benchmark {
     // ============================================================
 
     void spawn_forge(
-        forge::registry<
-            Position,
-            Velocity,
-            Health>& world,
+        forge::registry<Position, Velocity, Health>& world,
         std::vector<forge::entity>& entities) {
-        for (std::size_t i = 0;
-             i < _config.spawns_per_frame;
-             ++i) {
+        for (std::size_t i = 0; i < _config.spawns_per_frame; ++i) {
             const auto e = world.make();
-
-            world.add_component<Position>(
-                e,
-                0.0f,
-                0.0f);
-
-            world.add_component<Velocity>(
-                e,
-                1.0f,
-                1.0f);
-
-            world.add_component<Health>(
-                e,
-                100);
-
+            world.add_component<Position>(e, 0.0f, 0.0f);
+            world.add_component<Velocity>(e, 1.0f, 1.0f);
+            world.add_component<Health>(e, 100);
             entities.push_back(e);
         }
     }
@@ -622,28 +461,12 @@ class stress_benchmark : public benchmark {
     // EnTT - Spawn
     // ============================================================
 
-    void spawn_entt(
-        entt::registry& world,
-        std::vector<entt::entity>& entities) {
-        for (std::size_t i = 0;
-             i < _config.spawns_per_frame;
-             ++i) {
+    void spawn_entt(entt::registry& world, std::vector<entt::entity>& entities) {
+        for (std::size_t i = 0; i < _config.spawns_per_frame; ++i) {
             const auto e = world.create();
-
-            world.emplace<Position>(
-                e,
-                0.0f,
-                0.0f);
-
-            world.emplace<Velocity>(
-                e,
-                1.0f,
-                1.0f);
-
-            world.emplace<Health>(
-                e,
-                100);
-
+            world.emplace<Position>(e, 0.0f, 0.0f);
+            world.emplace<Velocity>(e, 1.0f, 1.0f);
+            world.emplace<Health>(e, 100);
             entities.push_back(e);
         }
     }
@@ -653,28 +476,12 @@ class stress_benchmark : public benchmark {
     // ============================================================
 
     void movement_forge(
-        forge::registry<
-            Position,
-            Velocity,
-            Health>& world) {
-        auto view =
-            world.view<
-                Position,
-                const Velocity>();
-
-        view.each([&](
-                      Position& position,
-                      const Velocity& velocity) {
-            position.x +=
-                velocity.x *
-                _config.delta_time;
-
-            position.y +=
-                velocity.y *
-                _config.delta_time;
-
-            sink += static_cast<std::uint64_t>(
-                position.x);
+        forge::registry<Position, Velocity, Health>& world) {
+        auto view = world.view<Position, const Velocity>();
+        view.each([&](Position& position, const Velocity& velocity) {
+            position.x += velocity.x * _config.delta_time;
+            position.y += velocity.y * _config.delta_time;
+            sink += static_cast<std::uint64_t>(position.x);
         });
     }
 
@@ -682,26 +489,12 @@ class stress_benchmark : public benchmark {
     // EnTT - Movement
     // ============================================================
 
-    void movement_entt(
-        entt::registry& world) {
-        auto view =
-            world.view<
-                Position,
-                const Velocity>();
-
-        view.each([&](
-                      Position& position,
-                      const Velocity& velocity) {
-            position.x +=
-                velocity.x *
-                _config.delta_time;
-
-            position.y +=
-                velocity.y *
-                _config.delta_time;
-
-            sink += static_cast<std::uint64_t>(
-                position.x);
+    void movement_entt(entt::registry& world) {
+        auto view = world.view<Position, const Velocity>();
+        view.each([&](Position& position, const Velocity& velocity) {
+            position.x += velocity.x * _config.delta_time;
+            position.y += velocity.y * _config.delta_time;
+            sink += static_cast<std::uint64_t>(position.x);
         });
     }
 
@@ -710,30 +503,19 @@ class stress_benchmark : public benchmark {
     // ============================================================
 
     void health_forge(
-        forge::registry<
-            Position,
-            Velocity,
-            Health>& world) {
+        forge::registry<Position, Velocity, Health>& world) {
         auto view = world.view<Health>();
-
         view.each([](Health& health) {
             health.value -= 1;
-
-            sink += static_cast<std::uint64_t>(
-                health.value);
+            sink += static_cast<std::uint64_t>(health.value);
         });
     }
 
     void health_read_forge(
-        forge::registry<
-            Position,
-            Velocity,
-            Health>& world) {
+        forge::registry<Position, Velocity, Health>& world) {
         auto view = world.view<Health>();
-
         view.each([](const Health& health) {
-            sink += static_cast<std::uint64_t>(
-                health.value);
+            sink += static_cast<std::uint64_t>(health.value);
         });
     }
 
@@ -744,22 +526,17 @@ class stress_benchmark : public benchmark {
     void health_entt(
         entt::registry& world) {
         auto view = world.view<Health>();
-
         view.each([](Health& health) {
             health.value -= 1;
-
-            sink += static_cast<std::uint64_t>(
-                health.value);
+            sink += static_cast<std::uint64_t>(health.value);
         });
     }
 
     void health_read_entt(
         entt::registry& world) {
         auto view = world.view<Health>();
-
         view.each([](const Health& health) {
-            sink += static_cast<std::uint64_t>(
-                health.value);
+            sink += static_cast<std::uint64_t>(health.value);
         });
     }
 
@@ -768,13 +545,9 @@ class stress_benchmark : public benchmark {
     // ============================================================
 
     void destroy_forge(
-        forge::registry<
-            Position,
-            Velocity,
-            Health>& world,
+        forge::registry<Position, Velocity, Health>& world,
         std::vector<forge::entity>& entities) {
         std::size_t destroyed = 0;
-
         for (auto it = entities.begin(); it != entities.end() && destroyed < _config.destroys_per_frame;) {
             const auto e = *it;
             if (!world.is_alive(e)) {
@@ -800,9 +573,7 @@ class stress_benchmark : public benchmark {
         entt::registry& world,
         std::vector<entt::entity>& entities) {
         std::size_t destroyed = 0;
-
-        for (auto it = entities.begin();
-             it != entities.end() && destroyed < _config.destroys_per_frame;) {
+        for (auto it = entities.begin(); it != entities.end() && destroyed < _config.destroys_per_frame;) {
             const auto e = *it;
             if (!world.valid(e)) {
                 it = entities.erase(it);
@@ -824,10 +595,7 @@ class stress_benchmark : public benchmark {
     // ============================================================
 
     void destroy_all_forge(
-        forge::registry<
-            Position,
-            Velocity,
-            Health>& world,
+        forge::registry<Position, Velocity, Health>& world,
         std::vector<forge::entity>& entities) {
         for (const auto e : entities) {
             world.destroy(e);

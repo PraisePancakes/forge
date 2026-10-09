@@ -121,11 +121,11 @@ class basic_sparse_set {
     }
 
     void swap_and_pop(const Entity e) noexcept {
-        if (!contains(e)) {
-            return;
-        }
-        swap_at(get_ref(e), dense.size() - 1);
-        get_ref(e) = null;
+        auto* const p = get(e);
+        if (!p) return;
+        auto& ref = *p;
+        swap_at(ref, dense.size() - 1);
+        ref = null;
         dense.pop_back();
     };
 
@@ -190,7 +190,9 @@ class basic_sparse_set {
     // must contain an entity of the same identifier and version
     [[nodiscard]] bool contains(const Entity e) const noexcept {
         const auto* p = get(e);
-        return (p && *p != null && (forge::to_entity(dense[*p]) == forge::to_entity(e)) && (forge::to_version(dense[*p]) == forge::to_version(e)));
+        if (!p) return false;
+        auto ref = *p;
+        return (ref != null && (forge::to_entity(dense[ref]) == forge::to_entity(e)) && (forge::to_version(dense[ref]) == forge::to_version(e)));
     };
 
     // lookup of entity in dense using get_ref(e) which gets its dense index from sparse
