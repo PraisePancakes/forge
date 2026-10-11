@@ -36,19 +36,11 @@ class benchmark {
     }
 
     template <typename Fn>
-    static result measure(
-        std::string_view name,
-        Fn&& fn) {
+    static result measure(std::string_view name, Fn&& fn) {
         const auto start = clock::now();
-
         std::forward<Fn>(fn)();
-
         const auto end = clock::now();
-
-        const double milliseconds =
-            std::chrono::duration<double, std::milli>(
-                end - start)
-                .count();
+        const double milliseconds = std::chrono::duration<double, std::milli>(end - start).count();
 
         std::cout
             << std::left
@@ -60,17 +52,11 @@ class benchmark {
             << std::setprecision(3)
             << milliseconds
             << " ms\n";
-
-        return {
-            std::string(name),
-            milliseconds};
+        return {std::string(name), milliseconds};
     }
 
     static void print_sink() {
-        std::cout
-            << "\nSink: "
-            << sink
-            << '\n';
+        std::cout << "\nSink: " << sink << '\n';
     }
 };
 };  // namespace benchmark

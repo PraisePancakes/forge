@@ -15,23 +15,22 @@ class pool_storage : public basic_sparse_set<Entity> {
     void release_pages() noexcept {
         const auto size = this->size();
         for (std::size_t i = 0; i < size; ++i) {
-            std::destroy_at(std::addressof(pages[i / Traits::page_size][i % Traits::page_size]));
+            std::destroy_at(std::addressof(pages[i / Traits::page_size][this->offset_of(i)]));
         }
         for (auto* page : pages) {
             if (page)
                 alloc_traits::deallocate(allocator, page, Traits::page_size);
         }
     }
-    Component& component_at(std::size_t index) noexcept {
+    Component& component_at(const std::size_t index) noexcept {
         const auto page_index = index / Traits::page_size;
-        const auto offset = index % Traits::page_size;
+        const auto offset = this->offset_of(index);
         return pages[page_index][offset];
     }
 
-    const Component& component_at(std::size_t index) const noexcept {
+    const Component& component_at(const std::size_t index) const noexcept {
         const auto page_index = index / Traits::page_size;
-        const auto offset = index % Traits::page_size;
-
+        const auto offset = this->offset_of(index);
         return pages[page_index][offset];
     }
 

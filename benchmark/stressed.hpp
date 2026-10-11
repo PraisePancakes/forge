@@ -51,7 +51,7 @@ class stress_benchmark : public benchmark {
     configuration _config;
 
     static constexpr std::size_t warmup_runs = 3;
-    static constexpr std::size_t measured_runs = 7;
+    static constexpr std::size_t measured_runs = 3;
 
     // ============================================================
     // Configuration
@@ -130,17 +130,12 @@ class stress_benchmark : public benchmark {
     // ============================================================
 
     template <typename Setup, typename Func>
-    void measure_median(
-        std::string_view name,
-        Setup&& setup,
-        Func&& func) {
+    void measure_median(std::string_view name, Setup&& setup, Func&& func) {
         // --------------------------------------------------------
         // Warmup
         // --------------------------------------------------------
 
-        for (std::size_t i = 0;
-             i < warmup_runs;
-             ++i) {
+        for (std::size_t i = 0; i < warmup_runs; ++i) {
             auto world = setup();
             func(world);
         }
@@ -152,39 +147,19 @@ class stress_benchmark : public benchmark {
         std::vector<double> times;
         times.reserve(measured_runs);
 
-        for (std::size_t i = 0;
-             i < measured_runs;
-             ++i) {
+        for (std::size_t i = 0; i < measured_runs; ++i) {
             auto world = setup();
-
-            const auto start =
-                std::chrono::steady_clock::now();
-
+            const auto start = std::chrono::steady_clock::now();
             func(world);
-
-            const auto end =
-                std::chrono::steady_clock::now();
-
-            const double elapsed =
-                std::chrono::duration<double, std::milli>(
-                    end - start)
-                    .count();
-
+            const auto end = std::chrono::steady_clock::now();
+            const double elapsed = std::chrono::duration<double, std::milli>(end - start).count();
             times.push_back(elapsed);
         }
 
-        std::sort(
-            times.begin(),
-            times.end());
-
-        const double median =
-            times[times.size() / 2];
-
-        const double minimum =
-            times.front();
-
-        const double maximum =
-            times.back();
+        std::sort(times.begin(), times.end());
+        const double median = times[times.size() / 2];
+        const double minimum = times.front();
+        const double maximum = times.back();
 
         std::cout
             << std::left
@@ -289,17 +264,14 @@ class stress_benchmark : public benchmark {
             case scenario::full_loop:
                 measure_median(
                     "Forge - Full Game Loop",
-                    [&] {
-                        return std::make_unique<forge_world>(_config);
-                    },
+                    [&] { return std::make_unique<forge_world>(_config); },
                     [&](std::unique_ptr<forge_world>& world) {
                         for (std::size_t frame = 0; frame < _config.frames; ++frame) {
                             spawn_forge(world->registry, world->entities);
                             movement_forge(world->registry);
                             health_forge(world->registry);
                             destroy_forge(world->registry, world->entities);
-                        }
-                    });
+                        } });
                 break;
         }
     }
@@ -544,23 +516,24 @@ class stress_benchmark : public benchmark {
     // Forge - Destroy
     // ============================================================
 
-    void destroy_forge(
-        forge::registry<Position, Velocity, Health>& world,
-        std::vector<forge::entity>& entities) {
+    void destroy_forge(forge::registry<Position, Velocity, Health>& world, std::vector<forge::entity>& entities) {
         std::size_t destroyed = 0;
-        for (auto it = entities.begin(); it != entities.end() && destroyed < _config.destroys_per_frame;) {
-            const auto e = *it;
+        std::size_t i = 0;
+        while (i < entities.size() && destroyed < _config.destroys_per_frame) {
+            const auto e = entities[i];
             if (!world.is_alive(e)) {
-                it = entities.erase(it);
+                entities[i] = entities.back();
+                entities.pop_back();
                 continue;
             }
             auto& health = world.get_component<Health>(e);
             if (health.value <= 0) {
                 world.destroy(e);
-                it = entities.erase(it);
+                entities[i] = entities.back();
+                entities.pop_back();
                 ++destroyed;
             } else {
-                ++it;
+                ++i;
             }
         }
     }
@@ -568,24 +541,24 @@ class stress_benchmark : public benchmark {
     // ============================================================
     // EnTT - Destroy
     // ============================================================
-
-    void destroy_entt(
-        entt::registry& world,
-        std::vector<entt::entity>& entities) {
+    void destroy_entt(entt::registry& world, std::vector<entt::entity>& entities) {
         std::size_t destroyed = 0;
-        for (auto it = entities.begin(); it != entities.end() && destroyed < _config.destroys_per_frame;) {
-            const auto e = *it;
+        std::size_t i = 0;
+        while (i < entities.size() && destroyed < _config.destroys_per_frame) {
+            const auto e = entities[i];
             if (!world.valid(e)) {
-                it = entities.erase(it);
+                entities[i] = entities.back();
+                entities.pop_back();
                 continue;
             }
             auto& health = world.get<Health>(e);
             if (health.value <= 0) {
                 world.destroy(e);
-                it = entities.erase(it);
+                entities[i] = entities.back();
+                entities.pop_back();
                 ++destroyed;
             } else {
-                ++it;
+                ++i;
             }
         }
     }

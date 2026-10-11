@@ -143,12 +143,8 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
     }
 
    public:
-    underlying_container& each() {
-        return *this;
-    };
-
+    underlying_container& each() { return *this; };
     view_fwd(UniversalPool& pool) : underlying_container{pool} {};
-
     const iterator begin() const {
         if (containers::contains_empty(this->inclusions)) return end();
         return iterator{0, this->inclusions, this->exclusions};
@@ -204,10 +200,7 @@ class view_span<E, UniversalPool, std::tuple<Includes...>, std::tuple<>>
 
    public:
     view_span(UniversalPool& pool) : underlying_container{pool}, pool_ref{pool} {};
-
     template <typename... Excludes>
-    auto exclude() {
-        return view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...>>(this->pool_ref);
-    };
+    auto exclude() { return view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...>>(this->pool_ref); };
 };
 };  // namespace forge

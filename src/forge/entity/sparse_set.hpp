@@ -86,9 +86,7 @@ class basic_sparse_set {
     [[nodiscard]] auto page_of(const std::size_t pos) const noexcept {
         return static_cast<std::size_t>(pos / Traits::page_size);
     }
-    [[nodiscard]] auto offset_of(const std::size_t pos) const noexcept {
-        return static_cast<std::size_t>(pos % Traits::page_size);
-    }
+
     [[nodiscard]] auto get(const Entity e) noexcept {
         auto pos = pos_of(e);
         auto page = page_of(pos);
@@ -162,6 +160,9 @@ class basic_sparse_set {
     using iterator = sparse_set_iterator<dense_type>;
 
    protected:
+    [[nodiscard]] auto offset_of(const std::size_t pos) const noexcept {
+        return static_cast<std::size_t>(pos & (Traits::page_size - 1u));
+    }
     iterator emplace(const Entity e) noexcept {
         auto pos = dense.size();
         auto& elem = assure_minimum(e);

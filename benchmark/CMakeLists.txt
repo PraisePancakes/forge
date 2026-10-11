@@ -11,7 +11,9 @@ FetchContent_MakeAvailable(entt)
 add_executable(forge_benchmark
     main.cpp
 )
-
+target_compile_options(forge_benchmark PRIVATE
+    -fno-omit-frame-pointer
+)
 target_link_libraries(forge_benchmark
     PRIVATE
         forge
