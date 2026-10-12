@@ -26,11 +26,12 @@ class view_iterator<It, DerefTag, std::tuple<Includes...>, std::tuple<Excludes..
     Exclude excludes;
     It it{};
     It end{};
+    std::size_t driving_index;
 
    public:
-    view_iterator(const std::size_t row_index, Get& gets, Exclude& ex)
-        : gets{gets}, excludes{ex} {
-        meta::_INTERNAL::homogeneous_template_tuple_get(containers::get_driving_index(gets), gets, [this, row_index](auto&& arg) {
+    view_iterator(std::size_t driving_index, const std::size_t row_index, Get& gets, Exclude& ex)
+        : gets{gets}, excludes{ex}, driving_index{driving_index} {
+        meta::_INTERNAL::homogeneous_template_tuple_get(driving_index, gets, [this, row_index](auto&& arg) {
             this->it = arg.begin() + row_index;
             this->end = arg.end();
         });
@@ -38,12 +39,12 @@ class view_iterator<It, DerefTag, std::tuple<Includes...>, std::tuple<Excludes..
 
     view_iterator& operator++() {
         this->it++;
-        if constexpr (sizeof...(Includes) == 1 &&
-                      sizeof...(Excludes) == 0)
+        if constexpr (sizeof...(Includes) == 1 && sizeof...(Excludes) == 0)
             return *this;
-        while (this->it != this->end && (!containers::contains_in_every(*this->it, gets) ||
-                                         !containers::contains_in_none(*this->it, excludes))) {
-            this->it++;
+        while (this->it != this->end &&
+               (!containers::contains_in_every_except(*this->it, gets, driving_index, std::make_index_sequence<sizeof...(Includes)>{}) ||
+                !containers::contains_in_none(*this->it, excludes))) {
+            ++this->it;
         }
         return *this;
     }
@@ -88,36 +89,33 @@ class basic_view_container<Entity, UniversalPool, std::tuple<Includes...>, std::
     inclusion_type inclusions;
     exclusion_type exclusions;
     std::size_t driving_index;
+    std::size_t end_index{0};
 
    public:
     basic_view_container(UniversalPool& pool)
         : inclusions{containers::subset_of<UniversalPool, Includes...>(pool)},
           exclusions{containers::subset_of<UniversalPool, Excludes...>(pool)},
-          driving_index{containers::get_driving_index(containers::subset_of<UniversalPool, Includes...>(pool))} {}
+          driving_index{containers::get_driving_index(inclusions)} {
+        meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, inclusions, [this](auto&& arg) {
+            this->end_index = arg.size();
+        });
+    }
     iterator begin() {
         if (containers::contains_empty(inclusions)) return end();
-        return iterator{0, inclusions, exclusions};
+        return iterator{driving_index, 0, inclusions, exclusions};
     };
 
     const iterator begin() const {
         if (containers::contains_empty(inclusions)) return end();
-        return iterator{0, inclusions, exclusions};
+        return iterator{driving_index, 0, inclusions, exclusions};
     };
 
     iterator end() {
-        std::size_t end_index = 0;
-        meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, inclusions, [&end_index](auto&& arg) {
-            end_index = arg.size();
-        });
-        return iterator{end_index, inclusions, exclusions};
+        return iterator{driving_index, end_index, inclusions, exclusions};
     };
 
     const iterator end() const {
-        std::size_t end_index = 0;
-        meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, inclusions, [&end_index](auto&& arg) {
-            end_index = arg.size();
-        });
-        return iterator{end_index, inclusions, exclusions};
+        return iterator{driving_index, end_index, inclusions, exclusions};
     };
 };
 
@@ -147,7 +145,7 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
     view_fwd(UniversalPool& pool) : underlying_container{pool} {};
     const iterator begin() const {
         if (containers::contains_empty(this->inclusions)) return end();
-        return iterator{0, this->inclusions, this->exclusions};
+        return iterator{this->driving_index, 0, this->inclusions, this->exclusions};
     };
 
     const iterator end() const {
@@ -155,12 +153,12 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
         meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->inclusions, [&end_index](auto&& arg) {
             end_index = arg.size();
         });
-        return iterator{end_index, this->inclusions, this->exclusions};
+        return iterator{this->driving_index, end_index, this->inclusions, this->exclusions};
     };
 
     iterator begin() {
         if (containers::contains_empty(this->inclusions)) return end();
-        return iterator{0, this->inclusions, this->exclusions};
+        return iterator{this->driving_index, 0, this->inclusions, this->exclusions};
     };
 
     iterator end() {
@@ -168,7 +166,7 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
         meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->inclusions, [&end_index](auto&& arg) {
             end_index = arg.size();
         });
-        return iterator{end_index, this->inclusions, this->exclusions};
+        return iterator{this->driving_index, end_index, this->inclusions, this->exclusions};
     };
 
     template <typename Func>

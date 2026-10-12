@@ -106,7 +106,7 @@ template <entity_like T>
 struct entity_traits : basic_entity_traits<internal::entity_traits<T>> {
     using base_type = basic_entity_traits<internal::entity_traits<T>>;
 
-    constexpr static std::size_t page_size = 256;
+    constexpr static std::size_t page_size = 4096;
 };
 
 template <typename Entity>

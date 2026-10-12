@@ -35,7 +35,10 @@ decltype(auto) subset_of(PoolType& pool) {
     return std::forward_as_tuple(
         std::get<meta::index_of_value_type<std::remove_cvref_t<Ts>, Pool>::value>(pool)...);
 }
-
+template <typename E, typename PoolType, std::size_t... Is>
+bool contains_in_every_except(const E e, PoolType&& pools, const std::size_t driving_index, std::index_sequence<Is...>) {
+    return (((Is == driving_index) || std::get<Is>(pools).contains(e)) && ...);
+}
 template <typename E, typename PoolType>
 bool contains_in_every(const E e, PoolType&& p) {
     return std::apply([&e](auto&&... args) {

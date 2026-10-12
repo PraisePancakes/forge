@@ -37,7 +37,8 @@ TEST_SUITE("view iterator") {
         std::tuple<pool&> gets{ints};
         std::tuple<> excludes{};
 
-        view_iterator_t it{0, gets, excludes};
+        const auto driving_index = containers::get_driving_index(gets);
+        view_iterator_t it{driving_index, 0, gets, excludes};
 
         CHECK(*it == e0);
 
@@ -48,7 +49,7 @@ TEST_SUITE("view iterator") {
         CHECK(*it == e2);
 
         ++it;
-        CHECK(it == view_iterator_t{ints.size(), gets, excludes});
+        CHECK(it == view_iterator_t{driving_index, ints.size(), gets, excludes});
     }
 
     TEST_CASE("view_iterator: post increment") {
@@ -74,7 +75,8 @@ TEST_SUITE("view iterator") {
         std::tuple<pool&> gets{ints};
         std::tuple<> excludes{};
 
-        view_iterator_t it{0, gets, excludes};
+        const auto driving_index = containers::get_driving_index(gets);
+        view_iterator_t it{driving_index, 0, gets, excludes};
 
         auto old = it++;
 
@@ -89,7 +91,7 @@ TEST_SUITE("view iterator") {
         old = it++;
 
         CHECK(*old == e2);
-        CHECK(it == view_iterator_t{ints.size(), gets, excludes});
+        CHECK(it == view_iterator_t{driving_index, ints.size(), gets, excludes});
     }
 
     TEST_CASE("view_iterator: equality") {
@@ -113,9 +115,10 @@ TEST_SUITE("view iterator") {
         std::tuple<pool&> gets{ints};
         std::tuple<> excludes{};
 
-        view_iterator_t a{0, gets, excludes};
-        view_iterator_t b{0, gets, excludes};
-        view_iterator_t c{1, gets, excludes};
+        const auto driving_index = containers::get_driving_index(gets);
+        view_iterator_t a{driving_index, 0, gets, excludes};
+        view_iterator_t b{driving_index, 0, gets, excludes};
+        view_iterator_t c{driving_index, 1, gets, excludes};
 
         CHECK(a == b);
         CHECK_FALSE(a != b);
@@ -181,7 +184,8 @@ TEST_SUITE("view iterator") {
         std::tuple<int_pool&, char_pool&> gets{ints, chars};
         std::tuple<> excludes{};
 
-        view_iterator_t it{0, gets, excludes};
+        const auto driving_index = containers::get_driving_index(gets);
+        view_iterator_t it{driving_index, 0, gets, excludes};
 
         CHECK(*it == e0);
 
@@ -212,13 +216,14 @@ TEST_SUITE("view iterator") {
         using view_iterator_t = forge::view_iterator<
             iterator,
             forge::_INTERNAL::TAGS::deref_row_wise_tag,
-            std::tuple<int, char>,
+            std::tuple<char, int>,
             std::tuple<>>;
 
-        std::tuple<int_pool&, char_pool&> gets{ints, chars};
+        std::tuple<char_pool&, int_pool&> gets{chars, ints};
         std::tuple<> excludes{};
 
-        view_iterator_t it{0, gets, excludes};
+        const auto driving_index = containers::get_driving_index(gets);
+        view_iterator_t it{driving_index, 0, gets, excludes};
 
         CHECK(*it == e0);
 
@@ -226,7 +231,7 @@ TEST_SUITE("view iterator") {
         CHECK(*it == e1);
 
         ++it;
-        CHECK(it == view_iterator_t{ints.size(), gets, excludes});
+        CHECK(it == view_iterator_t{driving_index, ints.size(), gets, excludes});
     }
 
     TEST_CASE("view_iterator: exclusion") {
@@ -257,7 +262,8 @@ TEST_SUITE("view iterator") {
         std::tuple<int_pool&> gets{ints};
         std::tuple<char_pool&> excludes{chars};
 
-        view_iterator_t it{0, gets, excludes};
+        const auto driving_index = containers::get_driving_index(gets);
+        view_iterator_t it{driving_index, 0, gets, excludes};
 
         CHECK(*it == e0);
 
@@ -265,7 +271,7 @@ TEST_SUITE("view iterator") {
         CHECK(*it == e2);
 
         ++it;
-        CHECK(it == view_iterator_t{ints.size(), gets, excludes});
+        CHECK(it == view_iterator_t{driving_index, ints.size(), gets, excludes});
     }
 
     TEST_CASE("view_iterator: multiple exclusions") {
@@ -301,7 +307,8 @@ TEST_SUITE("view iterator") {
         std::tuple<int_pool&> gets{ints};
         std::tuple<char_pool&, float_pool&> excludes{chars, floats};
 
-        view_iterator_t it{0, gets, excludes};
+        const auto driving_index = containers::get_driving_index(gets);
+        view_iterator_t it{driving_index, 0, gets, excludes};
 
         CHECK(*it == e0);
 
@@ -309,7 +316,7 @@ TEST_SUITE("view iterator") {
         CHECK(*it == e3);
 
         ++it;
-        CHECK(it == view_iterator_t{ints.size(), gets, excludes});
+        CHECK(it == view_iterator_t{driving_index, ints.size(), gets, excludes});
     }
 
     TEST_CASE("view_iterator: column-wise dereference") {
@@ -339,7 +346,8 @@ TEST_SUITE("view iterator") {
         std::tuple<int_pool&, char_pool&> gets{ints, chars};
         std::tuple<> excludes{};
 
-        view_iterator_t it{0, gets, excludes};
+        const auto driving_index = containers::get_driving_index(gets);
+        view_iterator_t it{driving_index, 0, gets, excludes};
 
         auto [i0, c0] = *it;
 
@@ -377,7 +385,8 @@ TEST_SUITE("view iterator") {
         std::tuple<int_pool&, char_pool&> gets{ints, chars};
         std::tuple<> excludes{};
 
-        view_iterator_t it{0, gets, excludes};
+        const auto driving_index = containers::get_driving_index(gets);
+        view_iterator_t it{driving_index, 0, gets, excludes};
 
         auto&& [i, c] = *it;
 
@@ -416,8 +425,9 @@ TEST_SUITE("view iterator") {
         std::tuple<int_pool&, char_pool&> gets{ints, chars};
         std::tuple<> excludes{};
 
-        view_iterator_t begin{0, gets, excludes};
-        view_iterator_t end{ints.size(), gets, excludes};
+        const auto driving_index = containers::get_driving_index(gets);
+        view_iterator_t begin{driving_index, 0, gets, excludes};
+        view_iterator_t end{driving_index, ints.size(), gets, excludes};
 
         CHECK(begin == end);
     }
