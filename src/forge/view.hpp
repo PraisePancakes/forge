@@ -149,11 +149,7 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
     };
 
     const iterator end() const {
-        std::size_t end_index = 0;
-        meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->inclusions, [&end_index](auto&& arg) {
-            end_index = arg.size();
-        });
-        return iterator{this->driving_index, end_index, this->inclusions, this->exclusions};
+        return iterator{this->driving_index, this->end_index, this->inclusions, this->exclusions};
     };
 
     iterator begin() {
@@ -162,11 +158,7 @@ class view_fwd<E, UniversalPool, std::tuple<Includes...>, std::tuple<Excludes...
     };
 
     iterator end() {
-        std::size_t end_index = 0;
-        meta::_INTERNAL::homogeneous_template_tuple_get(this->driving_index, this->inclusions, [&end_index](auto&& arg) {
-            end_index = arg.size();
-        });
-        return iterator{this->driving_index, end_index, this->inclusions, this->exclusions};
+        return iterator{this->driving_index, this->end_index, this->inclusions, this->exclusions};
     };
 
     template <typename Func>
