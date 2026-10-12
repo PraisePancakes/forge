@@ -42,8 +42,8 @@ class pool_storage : public basic_sparse_set<Entity> {
     template <typename... Args>
     void emplace(const Entity e, Args&&... args) {
         FORGE_ASSERT(!this->contains(e), "Cannot emplace on existing component");
-        this->push(e);
-        const auto index = this->index_of(e);
+        auto it = this->push(e);
+        const auto index = static_cast<std::size_t>(it - this->begin());
         const auto page_index = index / Traits::page_size;
         if (page_index >= pages.size()) {
             auto* page = alloc_traits::allocate(allocator, Traits::page_size);

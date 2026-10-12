@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "fwd.hpp"
+#include "storage.hpp"
 
 int main() {
     benchmark::configuration relaxed_config{
@@ -17,14 +18,13 @@ int main() {
         .spawns_per_frame = 100,
         .destroys_per_frame = 100};
 
-    benchmark::relaxed_benchmark relaxed{
-        relaxed_config};
-
-    benchmark::stress_benchmark stress{
-        stress_config};
+    benchmark::relaxed_benchmark relaxed{relaxed_config};
+    benchmark::stress_benchmark stress{stress_config};
+    benchmark::storage_benchmark storage{};
 
     // relaxed.run();
     stress.run();
+    storage.run();
 
     return 0;
 }

@@ -53,6 +53,11 @@ struct sparse_set_iterator {
         sparse_set_iterator c = *this;
         return (c -= v);
     }
+
+    [[nodiscard]] constexpr std::ptrdiff_t operator-(const sparse_set_iterator& other) const noexcept {
+        return it - other.it;
+    }
+
     [[nodiscard]] constexpr pointer operator->() const noexcept {
         return std::addressof(operator[](0));
     }
@@ -223,12 +228,10 @@ class basic_sparse_set {
         std::cout << "SPARSE\n";
         std::cout << "[";
         std::size_t index = 0;
-
         for (auto* p : this->sparse) {
             if (p) {
                 for (std::size_t i = 0; i < Traits::page_size; ++i, ++index) {
                     std::cout << index << ":" << p[i];
-
                     if (index + 1 < this->sparse.size() * Traits::page_size) {
                         std::cout << ",";
                     }
